@@ -1,0 +1,52 @@
+name: Build develop
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+    paths-ignore:
+      - '.github/**'
+
+jobs:
+  build:
+    name: "Build and push Docker image"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [server, worker]
+
+    steps:
+      - name: "Checkout Action"
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Git Version
+        id: version
+        uses: codacy/git-version@2.8.0
+        with:
+          minor-identifier: 'feat:'
+          dev-branch: ${{ github.ref_name }}
+
+      - name: Docker Login
+        uses: docker/login-action@v2.0.0
+        with:
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2.4.0
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          context: .
+          push: true
+          build-args: |
+            PROFILE=dev
+            PACKAGE=${{ matrix.package }}
+          tags: ${{ secrets.REGISTRY_USERNAME }}/${{ github.event.repository.name }}-${{ matrix.package }}:${{ steps.version.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
