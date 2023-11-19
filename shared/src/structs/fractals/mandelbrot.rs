@@ -9,7 +9,7 @@ impl Mandelbrot {
         let c = Complex::new(x, y);
 
         let mut i = 0;
-        while i < max && z.sqrt_mag() < 32.0 * 32.0 {
+        while i < max && z.sqrt_mag() < 4.0 {
             z = z * z + c;
             i += 1;
         }
