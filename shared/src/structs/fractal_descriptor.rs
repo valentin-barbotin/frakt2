@@ -1,4 +1,7 @@
-use super::prelude::*;
+use super::prelude::{
+    iterated_sin_z::IteratedSinZ, julia::Julia, mandelbrot::Mandelbrot,
+    newton_raphson_z3::NewtonRaphsonZ3, newton_raphson_z4::NewtonRaphsonZ4, *,
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum FractalDescriptor {
@@ -9,26 +12,17 @@ pub enum FractalDescriptor {
     NewtonRaphsonZ4(NewtonRaphsonZ4),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Julia {
-    pub c: Complex,
-    pub divergence_threshold_square: f64,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Mandelbrot {}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct IteratedSinZ {
-    pub c: Complex,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct NewtonRaphsonZ3 {
-    pub c: Complex,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct NewtonRaphsonZ4 {
-    pub c: Complex,
+impl FractalDescriptor {
+    // TODO: Using a centralized function would be 
+    // a better approach to call the generation of a Fractal
+    // ISSUE: the payload can be different on each Fractal
+    pub fn generate(&self) {
+        match self {
+            FractalDescriptor::Julia(_) => todo!(),
+            FractalDescriptor::Mandelbrot(_) => todo!(),
+            FractalDescriptor::IteratedSinZ(_) => todo!(),
+            FractalDescriptor::NewtonRaphsonZ3(_) => todo!(),
+            FractalDescriptor::NewtonRaphsonZ4(_) => todo!(),
+        }
+    }
 }
