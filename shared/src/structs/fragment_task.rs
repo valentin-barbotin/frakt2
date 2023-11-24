@@ -1,4 +1,4 @@
-use super::prelude::{mandelbrot::Mandelbrot, *};
+use super::prelude::{mandelbrot::Mandelbrot, *, julia::Julia};
 use image::{ImageBuffer, Rgb};
 use log::{debug, error, info, trace, warn, LevelFilter};
 use std::io::{Read, Write};
@@ -52,8 +52,10 @@ impl FragmentTask {
             let zn: f64;
             let count: f64;
 
-            match self.fractal {
-                FractalDescriptor::Julia(_) => todo!(),
+            match &self.fractal {
+                FractalDescriptor::Julia(julia)  => {
+                    (zn, count) = julia.generate(self.max_iteration, mapped_x, mapped_y);
+                }
                 FractalDescriptor::Mandelbrot(_) => {
                     (zn, count) = Mandelbrot::generate(self.max_iteration, mapped_x, mapped_y);
                 }

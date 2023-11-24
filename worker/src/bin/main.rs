@@ -22,7 +22,7 @@ use worker::{
 
 macro_rules! loop_sleep {
     ($duration:expr) => {
-        std::thread::sleep(std::time::Duration::from_secs($duration));
+        std::thread::sleep(std::time::Duration::from_millis($duration));
     };
 }
 fn main() {
