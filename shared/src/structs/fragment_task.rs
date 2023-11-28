@@ -59,7 +59,9 @@ impl FragmentTask {
                 FractalDescriptor::Mandelbrot(_) => {
                     (zn, count) = Mandelbrot::generate(self.max_iteration, mapped_x, mapped_y);
                 }
-                FractalDescriptor::IteratedSinZ(_) => todo!(),
+                FractalDescriptor::IteratedSinZ(iterated_sin_z) => {
+                    (zn, count) = iterated_sin_z.generate(self.max_iteration, mapped_x, mapped_y);
+                },
                 FractalDescriptor::NewtonRaphsonZ3(_) => todo!(),
                 FractalDescriptor::NewtonRaphsonZ4(_) => todo!(),
             }
