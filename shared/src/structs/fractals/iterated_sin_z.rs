@@ -11,7 +11,7 @@ impl IteratedSinZ {
 
         let mut i = 0;
         while i < max && z.sqrt_mag() < 50.0 {
-            z = z.complex_sin() * self.c;
+            z = z.sin() * self.c;
             i += 1;
         }
 

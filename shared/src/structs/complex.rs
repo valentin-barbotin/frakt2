@@ -15,11 +15,10 @@ impl Complex {
         self.re * self.re + self.im * self.im
     }
 
-    pub fn complex_sin(self) -> Complex {
-        Complex {
-            re: self.re.sin() * self.re.cosh(),
-            im: self.im.cos() * self.im.sinh(),
-        }
+    pub fn sin(self) -> Self {
+        let re = self.re.sin() * self.im.cosh();
+        let im = self.re.cos() * self.im.sinh();
+        Self { re, im }
     }
 }
 
