@@ -14,6 +14,12 @@ impl Complex {
     pub fn sqrt_mag(self) -> f64 {
         self.re * self.re + self.im * self.im
     }
+
+    pub fn sin(self) -> Self {
+        let re = self.re.sin() * self.im.cosh();
+        let im = self.re.cos() * self.im.sinh();
+        Self { re, im }
+    }
 }
 
 impl std::ops::Add for Complex {
