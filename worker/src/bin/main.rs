@@ -12,7 +12,8 @@ extern crate worker;
 use shared::{
     colors,
     network,
-    structs::prelude::*
+    structs::prelude::*,
+    loop_sleep
 };
 
 use worker::{
@@ -20,11 +21,6 @@ use worker::{
     local_env::{self, *},
 };
 
-macro_rules! loop_sleep {
-    ($duration:expr) => {
-        std::thread::sleep(std::time::Duration::from_millis($duration));
-    };
-}
 fn main() {
     dotenv().ok();
 
@@ -66,15 +62,10 @@ fn main() {
     let worker_name = "[worker name]";
 
     info!("Worker {} ok", worker_name);
-
-    let duration = match RUST_ENV.as_str() {
-        "debug" => 500,
-        "trace" => 500,
-        _ => 10,
-    };
     
     loop {
-        loop_sleep!(duration);
+        loop_sleep!();
+        info!("Connecting to server...");
 
         let main_stream = match connect_to_server() {
             Ok(s) => s,
@@ -110,9 +101,9 @@ fn main() {
         let mut task = Box::new(task);
 
         loop {
-            loop_sleep!(duration);
+            loop_sleep!();
 
-            network::handle_response(&stream, task.0, task.1);
+            network::handle_message(&stream, task.0, task.1);
 
             *task = match get_task(&stream) {
                 Some(t) => t,

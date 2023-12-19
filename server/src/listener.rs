@@ -9,6 +9,11 @@ use std::{
 
 use crate::local_env::*;
 
+use shared::{
+    loop_sleep,
+    network::{self, handle_message},
+};
+
 pub fn start_server() {
     // Check if host is valid
     let host = match Ipv4Addr::from_str(&*HOST) {
@@ -48,8 +53,25 @@ pub fn start_server() {
     }
 }
 
-fn handle_client(mut stream: TcpStream) {
-    let mut buffer = [0; 1024];
+fn handle_client(stream: TcpStream) {
+    loop {
+        loop_sleep!();
 
-    // stream write/read
+        let message = match network::receive_message(&stream) {
+            Ok(r) => r,
+            Err(e) => {
+                error!("Failed to get message from stream: {}", e);
+                if e.kind() == std::io::ErrorKind::ConnectionAborted {
+                    error!("Connection closed with client.");
+                } else {
+                    error!("Failed to get message from stream: {}", e);
+                }
+                
+                network::close_stream(stream);
+                return;
+            }
+        };
+
+        handle_message(&stream, message.0, message.1);
+    }
 }

@@ -69,10 +69,11 @@ impl FragmentTask {
             let pixel_intensity =
                 PixelIntensity::new(zn as f32, (count as f32) / self.max_iteration as f32);
 
-            if let Err(_) = data.write_all(&pixel_intensity.zn.to_be_bytes()) {
+            if data.write_all(&pixel_intensity.zn.to_be_bytes()).is_err() {
                 error!("Error: Failed to write pixel intensity to data");
             }
-            if let Err(_) = data.write_all(&pixel_intensity.count.to_be_bytes()) {
+
+            if data.write_all(&pixel_intensity.count.to_be_bytes()).is_err() {
                 error!("Error: Failed to write pixel intensity to data");
             }
         }

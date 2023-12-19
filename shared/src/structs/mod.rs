@@ -14,8 +14,8 @@ pub mod u8data;
 
 pub mod prelude {
     pub use super::complex::Complex;
-    pub use super::fractal_descriptor::FractalDescriptor;
     pub use super::fractals::*;
+    pub use super::fractal_descriptor::*;
     pub use super::fragment::Fragment;
     pub use super::fragment_request::FragmentRequest;
     pub use super::fragment_result::FragmentResult;
