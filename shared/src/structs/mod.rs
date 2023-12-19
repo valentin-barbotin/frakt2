@@ -14,8 +14,8 @@ pub mod u8data;
 
 pub mod prelude {
     pub use super::complex::Complex;
-    pub use super::fractal_descriptor::FractalDescriptor;
     pub use super::fractals::*;
+    pub use super::fractal_descriptor::*;
     pub use super::fragment::Fragment;
     pub use super::fragment_request::FragmentRequest;
     pub use super::fragment_result::FragmentResult;
@@ -27,4 +27,11 @@ pub mod prelude {
     pub use super::resolution::Resolution;
     pub use super::u8data::U8Data;
     pub use serde::{Deserialize, Serialize};
+    pub use super::fractals::{
+        iterated_sin_z::IteratedSinZ,
+        julia::Julia,
+        mandelbrot::Mandelbrot,
+        newton_raphson_z3::NewtonRaphsonZ3,
+        newton_raphson_z4::NewtonRaphsonZ4,
+    };
 }

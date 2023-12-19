@@ -16,6 +16,12 @@ lazy_static! {
         .unwrap_or_else(|_e| { panic!("{}", var_not_defined("HOST")) })
         .parse()
         .unwrap_or_else(|e| { panic!("PORT is not a valid string: {}", e) });
+
+    pub static ref LOOP_SLEEP_DURATION: u64 = match RUST_ENV.as_str() {
+        "debug" => 500,
+        "trace" => 500,
+        _ => 0,
+    };
 }
 
 /*
@@ -32,4 +38,5 @@ pub fn check_vars() {
     lazy_static::initialize(&RUST_ENV); // don't panic if RUST_ENV is not defined
     lazy_static::initialize(&PORT);
     lazy_static::initialize(&HOST);
+    lazy_static::initialize(&LOOP_SLEEP_DURATION);
 }

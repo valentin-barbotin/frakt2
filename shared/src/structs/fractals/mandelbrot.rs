@@ -1,6 +1,6 @@
 use super::super::prelude::*;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Mandelbrot {}
 
 impl Mandelbrot {

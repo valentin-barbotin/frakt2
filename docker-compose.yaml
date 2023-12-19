@@ -20,9 +20,9 @@ services:
   #     - .env
   #     - .env.server
   #   ports:
-  #     - 7890:7890
+  #     - ${PORT}:${PORT}
   #   healthcheck:
-  #     test: ["CMD", "nc", "-zv", "127.0.0.1", "7890"]
+  #     test: ["CMD", "nc", "-zv", "127.0.0.1", "${PORT}"]
   #     interval: 2s
   #     timeout: 5s
   #     retries: 10
@@ -35,6 +35,8 @@ services:
       args:
         - WATCH=1
     restart: unless-stopped
+    deploy:
+      replicas: 2
     network_mode: host
     command:
       - bash

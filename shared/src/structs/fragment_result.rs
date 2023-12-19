@@ -2,7 +2,7 @@ use super::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FragmentResult {
-    id: U8Data,
+    pub id: U8Data,
     resolution: Resolution,
     range: Range,
     pixels: PixelData,

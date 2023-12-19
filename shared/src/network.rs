@@ -8,49 +8,24 @@ use std::{
 use super::structs::prelude::*;
 
 pub fn close_stream(stream: TcpStream) {
-    match stream.shutdown(std::net::Shutdown::Both) {
+    match stream.shutdown(Shutdown::Both) {
         Ok(_) => debug!("Connection closed"),
         Err(e) => error!("Can't close stream: {}", e),
     }
 }
 
 pub fn receive_message(mut stream: &TcpStream) -> Result<(String, Vec<u8>), std::io::Error> {
-    let timeout_duration = std::time::Duration::from_secs(4);
-    stream.set_read_timeout(Some(timeout_duration))?;
+    // let timeout_duration = std::time::Duration::from_secs(5);
+    // stream.set_read_timeout(Some(timeout_duration))?;
 
     let mut message_size_buffer = [0; 4];
     trace!("message_size_buffer");
 
-    match stream
-        .read_exact(&mut message_size_buffer)
-        .map_err(|e| e.kind())
-    {
-        Ok(_) => {}
-        Err(e) => match e {
-            std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut => {
-                trace!("Timeout or WouldBlock - Server not responding");
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::TimedOut,
-                    "Server not responding",
-                ));
-            }
-            std::io::ErrorKind::UnexpectedEof => {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::ConnectionAborted,
-                    "Server connection closed",
-                ));
-            }
-            _ => {
-                error!("Failed to read message size: {}", e);
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "Failed to read message size",
-                ));
-            }
-        },
-    };
-
     debug!("Receiving message");
+
+    stream.read_exact(&mut message_size_buffer)?;
+
+    debug!("Message received");
 
     let message_size = u32::from_be_bytes(message_size_buffer) as usize;
 
@@ -102,7 +77,7 @@ pub fn send_message(mut stream: &TcpStream, fragment: Fragment, data: Option<Vec
 
     stream.write_all(&(json_msg_size as u32).to_be_bytes())?;
     debug!("Sending json message: {}", serialized_message);
-    stream.write_all(&serialized_message.as_bytes())?;
+    stream.write_all(serialized_message.as_bytes())?;
 
     if let Some(src_data) = src_data {
         stream.write_all(&src_data)?;
@@ -119,33 +94,7 @@ pub fn send_message(mut stream: &TcpStream, fragment: Fragment, data: Option<Vec
     Ok(())
 }
 
-pub fn handle_response(stream: &TcpStream, response: String, src_data: Vec<u8>) {
-    let message = match extract_message(&response) {
-        Some(message) => {
-            info!("Message type: {:?}", message);
-            message
-        }
-        None => {
-            warn!("Unknown message: {}", response);
-            return;
-        }
-    };
-
-    match message {
-        Fragment::Task(task) => {
-            let (result, data) = task.run();
-            match send_message(&stream, Fragment::Result(result), Some(data), Some(src_data)) {
-                Ok(_) => trace!("Result sent"),
-                Err(e) => error!("Can't send message: {}", e),
-            }
-        }
-        _ => {
-            error!("Unknown message type: {}", response);
-        }
-    }
-}
-
-fn extract_message(response: &str) -> Option<Fragment> {
+pub fn extract_message(response: &str) -> Option<Fragment> {
     let v: Value = match serde_json::from_str(response) {
         Ok(v) => v,
         Err(e) => {
@@ -156,32 +105,55 @@ fn extract_message(response: &str) -> Option<Fragment> {
 
     match v {
         Value::Object(map) => {
-            for (key, value) in map {
-                match key.as_str() {
-                    "FragmentTask" => {
-                        let fragment: FragmentTask = match serde_json::from_value(value) {
-                            Ok(v) => v,
-                            Err(e) => {
-                                error!("Failed to get fragment: {}", e);
-                                return None;
-                            }
-                        };
-                        return Some(Fragment::Task(fragment));
-                    }
-                    _ => {
-                        error!("Unknown message type: {}", response);
-                        return None;
-                    }
+            let (key, value) = match map.into_iter().next() {
+                Some((key, value)) => (key, value),
+                None => {
+                    error!("Unknown message type");
+                    return None;
+                }
+            };
+
+            match key.as_str() {
+                "FragmentTask" => {
+                    let fragment: FragmentTask = match serde_json::from_value(value) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            error!("Failed to get fragment: {}", e);
+                            return None;
+                        }
+                    };
+                    Some(Fragment::Task(fragment))
+                },
+                "FragmentRequest" => {
+                    let fragment: FragmentRequest = match serde_json::from_value(value) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            error!("Failed to get fragment: {}", e);
+                            return None;
+                        }
+                    };
+                    Some(Fragment::Request(fragment))
+                },
+                "FragmentResult" => {
+                    let fragment: FragmentResult = match serde_json::from_value(value) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            error!("Failed to get fragment: {}", e);
+                            return None;
+                        }
+                    };
+                    Some(Fragment::Result(fragment))
+                },
+                _ => {
+                    error!("Unknown message type: {}", response);
+                    None
                 }
             }
-
-            error!("Unknown message type");
-            return None;
         }
 
         _ => {
             error!("Unknown message type");
-            return None;
+            None
         }
     }
 }

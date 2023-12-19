@@ -3,13 +3,13 @@ use image::{ImageBuffer, Rgb};
 use log::{debug, error, info, trace, warn, LevelFilter};
 use std::io::{Read, Write};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FragmentTask {
-    id: U8Data,
-    fractal: FractalDescriptor,
-    max_iteration: u16,
-    resolution: Resolution,
-    range: Range,
+    pub id: U8Data,
+    pub fractal: FractalDescriptor,
+    pub max_iteration: u16,
+    pub resolution: Resolution,
+    pub range: Range,
 }
 
 impl FragmentTask {
@@ -69,10 +69,11 @@ impl FragmentTask {
             let pixel_intensity =
                 PixelIntensity::new(zn as f32, (count as f32) / self.max_iteration as f32);
 
-            if let Err(_) = data.write_all(&pixel_intensity.zn.to_be_bytes()) {
+            if data.write_all(&pixel_intensity.zn.to_be_bytes()).is_err() {
                 error!("Error: Failed to write pixel intensity to data");
             }
-            if let Err(_) = data.write_all(&pixel_intensity.count.to_be_bytes()) {
+
+            if data.write_all(&pixel_intensity.count.to_be_bytes()).is_err() {
                 error!("Error: Failed to write pixel intensity to data");
             }
         }
