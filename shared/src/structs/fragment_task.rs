@@ -3,13 +3,13 @@ use image::{ImageBuffer, Rgb};
 use log::{debug, error, info, trace, warn, LevelFilter};
 use std::io::{Read, Write};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FragmentTask {
-    id: U8Data,
-    fractal: FractalDescriptor,
-    max_iteration: u16,
-    resolution: Resolution,
-    range: Range,
+    pub id: U8Data,
+    pub fractal: FractalDescriptor,
+    pub max_iteration: u16,
+    pub resolution: Resolution,
+    pub range: Range,
 }
 
 impl FragmentTask {

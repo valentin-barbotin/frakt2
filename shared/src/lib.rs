@@ -5,11 +5,14 @@ pub fn add(left: usize, right: usize) -> usize {
 pub mod colors;
 pub mod network;
 pub mod structs;
+pub mod utils;
 
 #[macro_export]
 macro_rules! loop_sleep {
     () => {
-        std::thread::sleep(std::time::Duration::from_millis(*LOOP_SLEEP_DURATION));
+        if *LOOP_SLEEP_DURATION != 0 {
+            std::thread::sleep(std::time::Duration::from_millis(*LOOP_SLEEP_DURATION));
+        }
     };
 }
 

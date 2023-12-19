@@ -1,8 +1,12 @@
 use log::{debug, error, info, trace, warn, LevelFilter};
 use std::{
-    io::{Read, Write},
+    io::{
+        Read,
+        Write,
+        ErrorKind
+    },
     net::{Shutdown, TcpStream},
-    process, thread,
+    process, thread, rc::Rc,
 };
 
 use dotenv::dotenv;
@@ -59,12 +63,12 @@ fn main() {
         .write_style(env_logger::WriteStyle::Always)
         .init();
 
-    let worker_name = "[worker name]";
+    let worker_name = shared::utils::random_string(10);
 
     info!("Worker {} ok", worker_name);
     
     loop {
-        loop_sleep!();
+        thread::sleep(std::time::Duration::from_secs(1));
         info!("Connecting to server...");
 
         let main_stream = match connect_to_server() {
@@ -75,25 +79,31 @@ fn main() {
             }
         };
 
-        let fragment = Fragment::Request(FragmentRequest::new(worker_name, 500));
+        let fragment = Fragment::Request(FragmentRequest::new(&worker_name, 500));
 
         match network::send_message(&main_stream, fragment, None, None) {
             Ok(_) => info!("Fragment request sent"),
             Err(e) => error!("Failed to send message: {}", e),
         }
 
-        let task = match get_task(&main_stream) {
-            Some(t) => t,
-            None => {
-                network::close_stream(main_stream);
-                continue;
-            }
-        };
-
-        let stream = match connect_to_server() {
-            Ok(s) => s,
+        let task = match network::receive_message(&main_stream) {
+            Ok(t) => t,
             Err(e) => {
-                error!("Failed to connect to server: {}", e);
+                match e.kind() {
+                    ErrorKind::ConnectionAborted => {
+                        // Stream closed by peer
+                        error!("Connection aborted");
+                    },
+                    ErrorKind::UnexpectedEof => {
+                        // No task given
+                        warn!("Failed to receive message: EOF");
+                    },
+                    _ => {
+                        error!("Failed to receive message")
+                    }
+                };
+
+                network::close_stream(main_stream);
                 continue;
             }
         };
@@ -103,32 +113,65 @@ fn main() {
         loop {
             loop_sleep!();
 
-            network::handle_message(&stream, task.0, task.1);
+            let stream = match connect_to_server() {
+                Ok(s) => s,
+                Err(e) => {
+                    error!("Failed to connect to server: {}", e);
+                    continue;
+                }
+            };
 
-            *task = match get_task(&stream) {
-                Some(t) => t,
-                None => {
+            handle_message(&stream, task.0, task.1);
+
+            *task = match network::receive_message(&stream) {
+                Ok(t) => t,
+                Err(e) => {
+                    match e.kind() {
+                        ErrorKind::ConnectionAborted => {
+                            // Stream closed by peer
+                            error!("Connection aborted");
+                        },
+                        ErrorKind::UnexpectedEof => {
+                            // No task given
+                            warn!("Failed to receive message: EOF");
+                        },
+                        _ => {
+                            error!("Failed to receive task");
+                        }
+                    };
+
                     network::close_stream(stream);
                     break;
                 }
             };
+
+            network::close_stream(stream);
         }
     }
 }
 
-fn get_task(stream: &TcpStream) -> Option<(String, Vec<u8>)> {
-    let response = match network::receive_message(&stream) {
-        Ok(r) => r,
-        Err(e) => {
-            if e.kind() == std::io::ErrorKind::ConnectionAborted {
-                error!("Server connection closed.");
-            } else {
-                error!("Failed to get message from stream: {}", e);
-            }
-            
-            return None;
+pub fn handle_message(stream: &TcpStream, response: String, src_data: Vec<u8>) {
+    let message = match network::extract_message(&response) {
+        Some(message) => {
+            info!("Message type: {:?}", message);
+            message
+        }
+        None => {
+            warn!("Unknown message: {}", response);
+            return;
         }
     };
 
-    Some(response)
+    match message {
+        Fragment::Task(task) => {
+            let (result, data) = task.run();
+            match network::send_message(stream, Fragment::Result(result), Some(data), Some(src_data)) {
+                Ok(_) => trace!("Result sent"),
+                Err(e) => error!("Can't send message: {}", e),
+            }
+        },
+        _ => {
+            error!("Unknown message type: {}", response);
+        }
+    }
 }

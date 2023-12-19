@@ -2,8 +2,8 @@ use super::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FragmentRequest {
-    worker_name: String,
-    maximal_work_load: u32,
+    pub worker_name: String,
+    pub maximal_work_load: u32,
 }
 
 impl FragmentRequest {

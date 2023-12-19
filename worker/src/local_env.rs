@@ -20,7 +20,7 @@ lazy_static! {
     pub static ref LOOP_SLEEP_DURATION: u64 = match RUST_ENV.as_str() {
         "debug" => 500,
         "trace" => 500,
-        _ => 10,
+        _ => 0,
     };
 }
 

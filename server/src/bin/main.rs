@@ -1,8 +1,6 @@
 use log::{debug, error, info, trace, warn, LevelFilter};
 use std::{
     io::Write,
-    net::{Ipv4Addr, SocketAddrV4, TcpListener},
-    thread,
 };
 
 use dotenv::dotenv;

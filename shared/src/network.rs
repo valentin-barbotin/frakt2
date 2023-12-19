@@ -15,42 +15,17 @@ pub fn close_stream(stream: TcpStream) {
 }
 
 pub fn receive_message(mut stream: &TcpStream) -> Result<(String, Vec<u8>), std::io::Error> {
-    let timeout_duration = std::time::Duration::from_secs(4);
-    stream.set_read_timeout(Some(timeout_duration))?;
+    // let timeout_duration = std::time::Duration::from_secs(5);
+    // stream.set_read_timeout(Some(timeout_duration))?;
 
     let mut message_size_buffer = [0; 4];
     trace!("message_size_buffer");
 
-    match stream
-        .read_exact(&mut message_size_buffer)
-        .map_err(|e| e.kind())
-    {
-        Ok(_) => {}
-        Err(e) => match e {
-            std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut => {
-                trace!("Timeout or WouldBlock - Server not responding");
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::TimedOut,
-                    "Peer not responding",
-                ));
-            }
-            std::io::ErrorKind::UnexpectedEof => {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::ConnectionAborted,
-                    "Connection closed",
-                ));
-            }
-            _ => {
-                error!("Failed to read message size: {}", e);
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "Failed to read message size",
-                ));
-            }
-        },
-    };
-
     debug!("Receiving message");
+
+    stream.read_exact(&mut message_size_buffer)?;
+
+    debug!("Message received");
 
     let message_size = u32::from_be_bytes(message_size_buffer) as usize;
 
@@ -119,63 +94,7 @@ pub fn send_message(mut stream: &TcpStream, fragment: Fragment, data: Option<Vec
     Ok(())
 }
 
-pub fn handle_message(stream: &TcpStream, response: String, src_data: Vec<u8>) {
-    let message = match extract_message(&response) {
-        Some(message) => {
-            info!("Message type: {:?}", message);
-            message
-        }
-        None => {
-            warn!("Unknown message: {}", response);
-            return;
-        }
-    };
-
-    match message {
-        Fragment::Task(task) => {
-            let (result, data) = task.run();
-            match send_message(stream, Fragment::Result(result), Some(data), Some(src_data)) {
-                Ok(_) => trace!("Result sent"),
-                Err(e) => error!("Can't send message: {}", e),
-            }
-        },
-        Fragment::Result(result) => {
-            let task = create_task();
-
-            match send_message(stream, Fragment::Task(task.0), Some(task.1), None) {
-                Ok(_) => trace!("Task sent"),
-                Err(e) => error!("Can't send message: {}", e),
-            }
-        }
-        Fragment::Request(request) => {
-            let task = create_task();
-
-            match send_message(stream, Fragment::Task(task.0), Some(task.1), None) {
-                Ok(_) => trace!("Task sent"),
-                Err(e) => error!("Can't send message: {}", e),
-            }
-        },
-        _ => {
-            error!("Unknown message type: {}", response);
-        }
-    }
-}
-
-fn create_task() -> (FragmentTask, Vec<u8>) {
-    let id = U8Data::new(0, 16);
-    let mandelbrot = super::structs::fractals::mandelbrot::Mandelbrot {};
-    let fractal = FractalDescriptor::Mandelbrot(mandelbrot);
-    let resolution = Resolution::new(160, 120);
-    let range = Range::new(Point::new(0.0, 0.0), Point::new(1.0, 1.0));
-
-    let task = FragmentTask::new(id, fractal, 500, resolution, range);
-
-    let data = vec![0; 16];
-
-    (task, data)
-}
-
-fn extract_message(response: &str) -> Option<Fragment> {
+pub fn extract_message(response: &str) -> Option<Fragment> {
     let v: Value = match serde_json::from_str(response) {
         Ok(v) => v,
         Err(e) => {
