@@ -8,6 +8,7 @@ use std::{
     net::{Shutdown, TcpStream},
     process, thread, rc::Rc,
 };
+use clap::Parser;
 
 use dotenv::dotenv;
 
@@ -24,13 +25,32 @@ use worker::{
     connect::connect_to_server,
     local_env::{self, *},
 };
+#[derive(Debug, Parser)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    #[arg(long, default_value = "127.0.0.1")]
+    server_address: String,
+
+    #[arg(long, default_value_t = 8080)]
+    server_port: u16,
+
+    #[arg(long)]
+    worker_name: Option<String>,
+
+}
 
 fn main() {
+
     dotenv().ok();
 
     local_env::check_vars();
+    let args = Args::parse();
+    let server_address = &args.server_address;
+    let server_port = args.server_port;
+    let worker_name = args.worker_name.unwrap_or_else(|| shared::utils::random_string(10));
 
-    // Initialize logger
+
+    
     let level: LevelFilter = match RUST_ENV.as_str() {
         "error" => LevelFilter::Error,
         "warn" => LevelFilter::Warn,
@@ -63,15 +83,14 @@ fn main() {
         .write_style(env_logger::WriteStyle::Always)
         .init();
 
-    let worker_name = shared::utils::random_string(10);
 
     info!("Worker {} ok", worker_name);
     
     loop {
         thread::sleep(std::time::Duration::from_secs(1));
         info!("Connecting to server...");
-
-        let main_stream = match connect_to_server() {
+        println!("Connecting to server: {} port ::{}", server_address, server_port);
+        let main_stream = match connect_to_server(server_address, server_port) {
             Ok(s) => s,
             Err(e) => {
                 error!("Failed to connect to server: {}", e);
@@ -113,7 +132,7 @@ fn main() {
         loop {
             loop_sleep!();
 
-            let stream = match connect_to_server() {
+            let stream = match connect_to_server(server_address, server_port) {
                 Ok(s) => s,
                 Err(e) => {
                     error!("Failed to connect to server: {}", e);
