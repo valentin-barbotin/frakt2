@@ -28,13 +28,15 @@ use worker::{
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Name of the person to greet
-    #[arg(short, long)]
-    name: String,
+    #[arg(long, default_value = "127.0.0.1")]
+    server_address: String,
 
-    /// Number of times to greet
-    #[arg(short, long, default_value_t = 1)]
-    count: u8,
+    #[arg(long, default_value_t = 8080)]
+    server_port: u16,
+
+    #[arg(long)]
+    worker_name: Option<String>,
+
 }
 
 fn main() {
@@ -43,10 +45,12 @@ fn main() {
 
     local_env::check_vars();
     let args = Args::parse();
-    for _ in 0..args.count {
-        println!("Hello {}!", args.name)
-    }
-    // Initialize logger
+    let server_address = &args.server_address;
+    let server_port = args.server_port;
+    let worker_name = args.worker_name.unwrap_or_else(|| shared::utils::random_string(10));
+
+
+    
     let level: LevelFilter = match RUST_ENV.as_str() {
         "error" => LevelFilter::Error,
         "warn" => LevelFilter::Warn,
@@ -79,15 +83,14 @@ fn main() {
         .write_style(env_logger::WriteStyle::Always)
         .init();
 
-    let worker_name = shared::utils::random_string(10);
 
     info!("Worker {} ok", worker_name);
     
     loop {
         thread::sleep(std::time::Duration::from_secs(1));
         info!("Connecting to server...");
-
-        let main_stream = match connect_to_server() {
+        println!("Connecting to server: {} port ::{}", server_address, server_port);
+        let main_stream = match connect_to_server(server_address, server_port) {
             Ok(s) => s,
             Err(e) => {
                 error!("Failed to connect to server: {}", e);
@@ -129,7 +132,7 @@ fn main() {
         loop {
             loop_sleep!();
 
-            let stream = match connect_to_server() {
+            let stream = match connect_to_server(server_address, server_port) {
                 Ok(s) => s,
                 Err(e) => {
                     error!("Failed to connect to server: {}", e);
