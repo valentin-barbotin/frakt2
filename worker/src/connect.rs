@@ -3,11 +3,12 @@ use std::{
     io::{Read, Write},
     net::TcpStream,
 };
+
 use crate::local_env::*;
 
-pub fn connect_to_server(server: &str, port: u16) -> Result<TcpStream, std::io::Error> {
-    let socketaddr = format!("{}:{}", server, port);
-    
+pub fn connect_to_server() -> Result<TcpStream, std::io::Error> {
+    let socketaddr = format!("{}:{}", *HOST, *PORT);
+
     trace!("Connecting to server: {}", socketaddr);
 
     let stream = TcpStream::connect(&socketaddr)?;
