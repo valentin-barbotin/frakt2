@@ -8,6 +8,7 @@ use std::{
     net::{Shutdown, TcpStream},
     process, thread, rc::Rc,
 };
+use clap::Parser;
 
 use dotenv::dotenv;
 
@@ -24,12 +25,27 @@ use worker::{
     connect::connect_to_server,
     local_env::{self, *},
 };
+#[derive(Debug, Parser)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Name of the person to greet
+    #[arg(short, long)]
+    name: String,
+
+    /// Number of times to greet
+    #[arg(short, long, default_value_t = 1)]
+    count: u8,
+}
 
 fn main() {
+
     dotenv().ok();
 
     local_env::check_vars();
-
+    let args = Args::parse();
+    for _ in 0..args.count {
+        println!("Hello {}!", args.name)
+    }
     // Initialize logger
     let level: LevelFilter = match RUST_ENV.as_str() {
         "error" => LevelFilter::Error,

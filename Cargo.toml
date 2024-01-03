@@ -4,8 +4,11 @@ members = [
     "server",
     "shared"
 ]
-resolver = "2"
 
+resolver = "2"
+default-members = [
+    "worker"
+]
 [profile.dev]
 opt-level = 0
 debug = true
