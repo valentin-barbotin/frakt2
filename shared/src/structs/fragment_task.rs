@@ -1,9 +1,9 @@
 use super::prelude::{mandelbrot::Mandelbrot, *, iterated_sin_z::IteratedSinZ, julia::Julia};
 use image::{ImageBuffer, Rgb};
 use log::{debug, error, info, trace, warn, LevelFilter};
-use std::io::{Read, Write};
+use std::{io::{Read, Write}, str::FromStr};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct FragmentTask {
     pub id: U8Data,
     pub fractal: FractalDescriptor,

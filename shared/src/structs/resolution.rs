@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Default)]
 pub struct Resolution {
     pub nx: u16,
     pub ny: u16,

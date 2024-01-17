@@ -8,3 +8,9 @@ pub enum FractalDescriptor {
     NewtonRaphsonZ3(NewtonRaphsonZ3),
     NewtonRaphsonZ4(NewtonRaphsonZ4),
 }
+
+impl Default for FractalDescriptor {
+    fn default() -> Self {
+        Self::Mandelbrot(Mandelbrot::default())
+    }
+}

@@ -1,11 +1,11 @@
 use super::prelude::*;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct FragmentResult {
     pub id: U8Data,
-    resolution: Resolution,
-    range: Range,
-    pixels: PixelData,
+    pub resolution: Resolution,
+    pub range: Range,
+    pub pixels: PixelData,
 }
 
 impl FragmentResult {
