@@ -2,6 +2,7 @@ use serde_json::json;
 
 use super::prelude::*;
 
+// Each variant have his own struct and implementation. (Can't impl on a unique variant)
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Fragment {
     Task(FragmentTask),
@@ -10,6 +11,9 @@ pub enum Fragment {
 }
 
 impl Fragment {
+    /*
+        Serialize a fragment to a JSON string.
+     */
     pub fn serialize(&self) -> String {
         match self {
             Fragment::Task(task) => self.to_json("FragmentTask", task),
@@ -18,6 +22,10 @@ impl Fragment {
         }
     }
 
+    /*
+        Serialize a fragment to a JSON string.
+        Fragment type is provided as a key and fragment as a value.
+     */
     fn to_json<T>(&self, fragment_type: &str, fragment: &T) -> String
     where
         T: Serialize,
@@ -97,6 +105,39 @@ mod tests {
             }
             _ => panic!("Wrong fragment type"),
         }
+    }
+
+    #[rstest]
+    fn test_serialize_task_fragment() {
+        let fragment = Fragment::Task(FragmentTask::default());
+        let json = fragment.serialize();
+
+        assert_eq!(
+            json,
+            r#"{"FragmentTask":{"fractal":{"Mandelbrot":{}},"id":{"count":0,"offset":0},"max_iteration":0,"range":{"max":{"x":0.0,"y":0.0},"min":{"x":0.0,"y":0.0}},"resolution":{"nx":0,"ny":0}}}"#
+        );
+    }
+
+    #[rstest]
+    fn test_serialize_request_fragment() {
+        let fragment = Fragment::Request(FragmentRequest::new("test", 500));
+        let json = fragment.serialize();
+
+        assert_eq!( 
+            json,
+            r#"{"FragmentRequest":{"maximal_work_load":500,"worker_name":"test"}}"#
+        );
+    }
+
+    #[rstest]
+    fn test_serialize_result_fragment() {
+        let fragment = Fragment::Result(FragmentResult::default());
+        let json = fragment.serialize();
+
+        assert_eq!(
+            json,
+            r#"{"FragmentResult":{"id":{"count":0,"offset":0},"pixels":{"count":0,"offset":0},"range":{"max":{"x":0.0,"y":0.0},"min":{"x":0.0,"y":0.0}},"resolution":{"nx":0,"ny":0}}}"#
+        );
     }
 }
 
