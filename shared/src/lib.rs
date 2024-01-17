@@ -6,6 +6,7 @@ pub mod colors;
 pub mod network;
 pub mod structs;
 pub mod utils;
+pub mod logger;
 
 #[macro_export]
 macro_rules! loop_sleep {

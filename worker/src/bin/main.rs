@@ -15,10 +15,10 @@ use dotenv::dotenv;
 extern crate worker;
 
 use shared::{
-    colors,
     network,
     structs::prelude::*,
-    loop_sleep
+    loop_sleep,
+    logger
 };
 
 use worker::{
@@ -49,40 +49,7 @@ fn main() {
     let server_port = args.server_port;
     let worker_name = args.worker_name.unwrap_or_else(|| shared::utils::random_string(10));
 
-
-    
-    let level: LevelFilter = match RUST_ENV.as_str() {
-        "error" => LevelFilter::Error,
-        "warn" => LevelFilter::Warn,
-        "info" => LevelFilter::Info,
-        "debug" => LevelFilter::Debug,
-        "trace" => LevelFilter::Trace,
-        _ => LevelFilter::Info,
-    };
-
-    env_logger::Builder::new()
-        .format(|buf, record| {
-            let level = match record.level() {
-                log::Level::Error => colors::RED,
-                log::Level::Warn => colors::YELLOW,
-                log::Level::Info => colors::GREEN,
-                log::Level::Debug => colors::BLUE,
-                log::Level::Trace => colors::CYAN,
-            };
-            writeln!(
-                buf,
-                "[{}{}{}] - {}",
-                level,
-                record.level(),
-                colors::RESET,
-                record.args()
-            )
-        })
-        .filter(None, level)
-        .target(env_logger::Target::Stdout)
-        .write_style(env_logger::WriteStyle::Always)
-        .init();
-
+    logger::setup_logger(RUST_ENV.as_str());
 
     info!("Worker {} ok", worker_name);
     
