@@ -2,7 +2,7 @@ use log::{debug, error, info, trace, warn, LevelFilter};
 use serde_json::Value;
 use std::{
     io::{Read, Write},
-    net::{Shutdown, TcpStream}
+    net::{Shutdown, TcpStream, SocketAddr, ToSocketAddrs}
 };
 
 use crate::fragment_from_json_value;
@@ -174,6 +174,30 @@ pub fn extract_message(response: &str) -> Option<Fragment> {
     }
 }
 
+/*
+    Get a socket address from the provided address and port
+*/
+pub fn get_socket_addr(address: &str, port: u16) -> Result<SocketAddr, std::io::Error> {
+    match format!("{}:{}", address, port).to_socket_addrs() {
+        Ok(mut addr) => {
+            match addr.next() {
+                Some(addr) => {
+                    debug!("Socket address: {}", addr);
+                    Ok(addr)
+                },
+                None => {
+                    error!("Failed to get socket address");
+                    Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to get socket address"))
+                }
+            }
+        },
+        Err(e) => {
+            error!("Failed to get socket address: {}", e);
+            Err(e)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -264,5 +288,24 @@ mod tests {
     #[rstest]
     fn test_close_stream() {
         
+    }
+
+    #[rstest]
+    #[case("127.0.0.1", 8787)]
+    #[should_panic]
+    #[case("", 8787)]
+    #[case("localhost", 8787)]
+    #[case("127.0.0.1", 0)]
+    fn test_get_socket_addr(#[case] address: &str, #[case] port: u16) {
+        let addr = get_socket_addr(address, port);
+
+        match addr {
+            Ok(addr) => {
+                assert_eq!(addr.port(), port);
+            },
+            Err(_) => {
+                assert_eq!(port, 0);
+            }
+        }
     }
 }

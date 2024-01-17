@@ -5,7 +5,7 @@ use std::{
         Write,
         ErrorKind
     },
-    net::{Shutdown, TcpStream, SocketAddr, ToSocketAddrs},
+    net::{Shutdown, TcpStream},
     process, thread, rc::Rc,
 };
 use clap::Parser;
@@ -56,22 +56,14 @@ fn main() {
     loop {
         thread::sleep(std::time::Duration::from_secs(1));
         info!("Connecting to server...");
-        println!("Connecting to server: {} port ::{}", server_address, server_port);
 
-        let addr = match format!("{}:{}", server_address, server_port).to_socket_addrs() {
-            Ok(mut addr) => match addr.next() {
-                Some(addr) => addr,
-                None => {
-                    error!("Failed to resolve address");
-                    continue;
-                }
-            },
+        let addr = match network::get_socket_addr(server_address.as_str(), server_port) {
+            Ok(addr) => addr,
             Err(e) => {
-                error!("Failed to resolve address: {}", e);
+                error!("Failed to parse address: {}", e);
                 continue;
             }
         };
-        
 
         let main_stream = match connect_to_server(addr) {
             Ok(s) => s,
@@ -152,6 +144,10 @@ fn main() {
     }
 }
 
+/*
+    Handle a message received from the server and send the result back
+    'src_data' is the data received from the server (id)
+*/
 pub fn handle_message(stream: &TcpStream, response: String, src_data: Vec<u8>) {
     let message = match network::extract_message(&response) {
         Some(message) => {
@@ -165,6 +161,7 @@ pub fn handle_message(stream: &TcpStream, response: String, src_data: Vec<u8>) {
     };
 
     match message {
+        // Compute a task and send the result back
         Fragment::Task(task) => {
             let (result, data) = task.run();
             match network::send_message(stream, Fragment::Result(result), Some(data), Some(src_data)) {
