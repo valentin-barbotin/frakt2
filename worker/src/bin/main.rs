@@ -28,10 +28,10 @@ use worker::{
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    #[arg(long, default_value = "127.0.0.1")]
+    #[arg(long, default_value_t= HOST.to_string())]
     server_address: String,
 
-    #[arg(long, default_value_t = 8080)]
+    #[arg(long, default_value_t = *PORT)]
     server_port: u16,
 
     #[arg(long)]
