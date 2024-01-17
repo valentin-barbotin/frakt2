@@ -1,18 +1,17 @@
 use log::{debug, error, info, trace, warn, LevelFilter};
 use std::{
     io::{Read, Write},
-    net::TcpStream,
+    net::{TcpStream, SocketAddr},
 };
 use crate::local_env::*;
 
-pub fn connect_to_server(server: &str, port: u16) -> Result<TcpStream, std::io::Error> {
-    let socketaddr = format!("{}:{}", server, port);
-    
-    trace!("Connecting to server: {}", socketaddr);
-
-    let stream = TcpStream::connect(&socketaddr)?;
-
-    trace!("Connected to server: {}", socketaddr);
+/*
+    Connect to a provided address
+ */
+pub fn connect_to_server(addr: SocketAddr) -> Result<TcpStream, std::io::Error> {
+    trace!("Connecting to server: {:?}", addr);
+    let stream = TcpStream::connect(addr)?;
+    trace!("Connected to server: {:?}", addr);
 
     Ok(stream)
 }

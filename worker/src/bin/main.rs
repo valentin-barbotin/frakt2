@@ -5,7 +5,7 @@ use std::{
         Write,
         ErrorKind
     },
-    net::{Shutdown, TcpStream},
+    net::{Shutdown, TcpStream, SocketAddr, ToSocketAddrs},
     process, thread, rc::Rc,
 };
 use clap::Parser;
@@ -90,7 +90,23 @@ fn main() {
         thread::sleep(std::time::Duration::from_secs(1));
         info!("Connecting to server...");
         println!("Connecting to server: {} port ::{}", server_address, server_port);
-        let main_stream = match connect_to_server(server_address, server_port) {
+
+        let addr = match format!("{}:{}", server_address, server_port).to_socket_addrs() {
+            Ok(mut addr) => match addr.next() {
+                Some(addr) => addr,
+                None => {
+                    error!("Failed to resolve address");
+                    continue;
+                }
+            },
+            Err(e) => {
+                error!("Failed to resolve address: {}", e);
+                continue;
+            }
+        };
+        
+
+        let main_stream = match connect_to_server(addr) {
             Ok(s) => s,
             Err(e) => {
                 error!("Failed to connect to server: {}", e);
@@ -132,7 +148,7 @@ fn main() {
         loop {
             loop_sleep!();
 
-            let stream = match connect_to_server(server_address, server_port) {
+            let stream = match connect_to_server(addr) {
                 Ok(s) => s,
                 Err(e) => {
                     error!("Failed to connect to server: {}", e);
