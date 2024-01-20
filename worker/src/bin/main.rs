@@ -1,25 +1,18 @@
+use clap::Parser;
 use log::{debug, error, info, trace, warn, LevelFilter};
 use std::{
-    io::{
-        Read,
-        Write,
-        ErrorKind
-    },
+    io::{ErrorKind, Read, Write},
     net::{Shutdown, TcpStream},
-    process, thread, rc::Rc,
+    process,
+    rc::Rc,
+    thread,
 };
-use clap::Parser;
 
 use dotenv::dotenv;
 
 extern crate worker;
 
-use shared::{
-    network,
-    structs::prelude::*,
-    loop_sleep,
-    logger
-};
+use shared::{logger, loop_sleep, network, structs::prelude::*};
 
 use worker::{
     connect::connect_to_server,
@@ -36,23 +29,23 @@ struct Args {
 
     #[arg(long)]
     worker_name: Option<String>,
-
 }
 
 fn main() {
-
     dotenv().ok();
 
     local_env::check_vars();
     let args = Args::parse();
     let server_address = &args.server_address;
     let server_port = args.server_port;
-    let worker_name = args.worker_name.unwrap_or_else(|| shared::utils::random_string(10));
+    let worker_name = args
+        .worker_name
+        .unwrap_or_else(|| shared::utils::random_string(10));
 
     logger::setup_logger(RUST_ENV.as_str());
 
     info!("Worker {} ok", worker_name);
-    
+
     loop {
         thread::sleep(std::time::Duration::from_secs(1));
         info!("Connecting to server...");
@@ -65,7 +58,11 @@ fn main() {
             }
         };
 
-        let main_stream = match connect_to_server(addr) {
+        info!(
+            "Connecting to server: {} port ::{}",
+            server_address, server_port
+        );
+        let main_stream = match connect_to_server(server_address, server_port) {
             Ok(s) => s,
             Err(e) => {
                 error!("Failed to connect to server: {}", e);
@@ -87,11 +84,11 @@ fn main() {
                     ErrorKind::ConnectionAborted => {
                         // Stream closed by peer
                         error!("Connection aborted");
-                    },
+                    }
                     ErrorKind::UnexpectedEof => {
                         // No task given
                         warn!("Failed to receive message: EOF");
-                    },
+                    }
                     _ => {
                         error!("Failed to receive message")
                     }
@@ -106,8 +103,7 @@ fn main() {
 
         loop {
             loop_sleep!();
-
-            let stream = match connect_to_server(addr) {
+            let stream = match connect_to_server(server_address, server_port) {
                 Ok(s) => s,
                 Err(e) => {
                     error!("Failed to connect to server: {}", e);
@@ -124,11 +120,11 @@ fn main() {
                         ErrorKind::ConnectionAborted => {
                             // Stream closed by peer
                             error!("Connection aborted");
-                        },
+                        }
                         ErrorKind::UnexpectedEof => {
                             // No task given
                             warn!("Failed to receive message: EOF");
-                        },
+                        }
                         _ => {
                             error!("Failed to receive task");
                         }
@@ -164,11 +160,16 @@ pub fn handle_message(stream: &TcpStream, response: String, src_data: Vec<u8>) {
         // Compute a task and send the result back
         Fragment::Task(task) => {
             let (result, data) = task.run();
-            match network::send_message(stream, Fragment::Result(result), Some(data), Some(src_data)) {
+            match network::send_message(
+                stream,
+                Fragment::Result(result),
+                Some(data),
+                Some(src_data),
+            ) {
                 Ok(_) => trace!("Result sent"),
                 Err(e) => error!("Can't send message: {}", e),
             }
-        },
+        }
         _ => {
             error!("Unknown message type: {}", response);
         }
