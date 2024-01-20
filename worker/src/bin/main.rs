@@ -29,6 +29,9 @@ struct Args {
 
     #[arg(long)]
     worker_name: Option<String>,
+
+    #[arg(long, default_value_t = RUST_ENV.to_string())]
+    rust_env: String,
 }
 
 fn main() {
@@ -42,7 +45,7 @@ fn main() {
         .worker_name
         .unwrap_or_else(|| shared::utils::random_string(10));
 
-    logger::setup_logger(RUST_ENV.as_str());
+    logger::setup_logger(&args.rust_env.as_str());
 
     info!("Worker {} ok", worker_name);
 
