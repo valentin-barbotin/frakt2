@@ -39,8 +39,6 @@ fn main() {
 
     local_env::check_vars();
     let args = Args::parse();
-    let server_address = &args.server_address;
-    let server_port = args.server_port;
     let worker_name = args
         .worker_name
         .unwrap_or_else(|| shared::utils::random_string(10));
@@ -53,7 +51,7 @@ fn main() {
         thread::sleep(std::time::Duration::from_secs(1));
         info!("Connecting to server...");
 
-        let addr = match network::get_socket_addr(server_address.as_str(), server_port) {
+        let addr = match network::get_socket_addr(&args.server_address.as_str(), args.server_port) {
             Ok(addr) => addr,
             Err(e) => {
                 error!("Failed to parse address: {}", e);
@@ -63,9 +61,9 @@ fn main() {
 
         info!(
             "Connecting to server: {} port ::{}",
-            server_address, server_port
+            &args.server_address, args.server_port
         );
-        let main_stream = match connect_to_server(server_address, server_port) {
+        let main_stream = match connect_to_server(&args.server_address, args.server_port) {
             Ok(s) => s,
             Err(e) => {
                 error!("Failed to connect to server: {}", e);
@@ -106,7 +104,7 @@ fn main() {
 
         loop {
             loop_sleep!();
-            let stream = match connect_to_server(server_address, server_port) {
+            let stream = match connect_to_server(&args.server_address, args.server_port) {
                 Ok(s) => s,
                 Err(e) => {
                     error!("Failed to connect to server: {}", e);
