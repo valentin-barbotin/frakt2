@@ -16,6 +16,10 @@ lazy_static! {
         .unwrap_or_else(|_e| { panic!("{}", var_not_defined("HOST")) })
         .parse()
         .unwrap_or_else(|e| { panic!("PORT is not a valid string: {}", e) });
+    pub static ref SERVER_HOST: String = env::var("SERVER_HOST")
+    .unwrap_or_else(|_e| { panic!("{}", var_not_defined("SERVER_HOST")) })
+    .parse()
+    .unwrap_or_else(|e| { panic!("SERVER_PORT is not a valid string: {}", e) });
 
     pub static ref LOOP_SLEEP_DURATION: u64 = match RUST_ENV.as_str() {
         "debug" => 500,
