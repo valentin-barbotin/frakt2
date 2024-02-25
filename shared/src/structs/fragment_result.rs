@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct FragmentResult {
     pub id: U8Data,
     pub resolution: Resolution,

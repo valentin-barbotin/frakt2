@@ -1,18 +1,31 @@
 use log::{debug, error, info, trace, warn, LevelFilter};
-use std::{io::{Read, Write, Cursor, ErrorKind}, sync::{Mutex, Arc}, str::from_utf8, os::fd::AsFd};
 use std::{
     fmt::Display,
+    mem::size_of,
     net::{IpAddr, Ipv4Addr, SocketAddrV4, TcpListener, TcpStream},
     str::FromStr,
+    sync::mpsc::{self, Sender},
     thread,
 };
+use std::{
+    io::{Cursor, ErrorKind, Read, Write},
+    os::fd::AsFd,
+    str::from_utf8,
+    sync::{Arc, Mutex},
+};
 
-use crate::{local_env::*, pool::{Pool, Worker}, tasks};
+use crate::{
+    local_env::*,
+    pool::{Pool, Worker},
+    rendering::launch_graphics_engine,
+    tasks,
+};
 
 use shared::{
-    loop_sleep,
+    dtos::rendering_data::RenderingData,
+    loop_sleep, network,
+    networking::server::{Server, ServerConfig},
     structs::prelude::*,
-    network,
 };
 
 use super::tasks::*;
@@ -40,29 +53,27 @@ pub fn start_server(host: &str, port: u16) {
 
     let workers_pool = Pool::new();
     let workers_pool = Arc::new(Mutex::new(workers_pool));
-    
-    let (tx, rx) = std::sync::mpsc::channel() as (std::sync::mpsc::Sender<Task>, std::sync::mpsc::Receiver<Task>);
 
-    // (test code)
-    // let params = FractalParams {
-    //     fractal_type: "mandelbrot".to_string(),
-    //     resolution: Resolution {
-    //         nx: 1000,
-    //         ny: 1000
-    //     },
-    //     max_iteration: 500
-    // };
+    let (tx, rx) = std::sync::mpsc::channel()
+        as (
+            std::sync::mpsc::Sender<Task>,
+            std::sync::mpsc::Receiver<Task>,
+        );
+    let (render_tx, render_rx) = mpsc::channel::<RenderingData>();
 
-    // let split = 8;
-    // if let Ok(tasks) = create_fractal_tasks(params, split) {
-    //     info!("Tasks created: {}", tasks.len());
-    //     for task in tasks {
-    //         tx.send(task);
-    //     }
-    // }
+    let address = "localhost";
+    let port = 8787;
+    let width = 300;
+    let height = 300;
+    let tiles = 4;
+    let portal = false;
+
+    let server_config = ServerConfig::new(address.to_string(), port, width, height, tiles, portal);
+
+    let server = create_server(&server_config, &render_tx);
 
     let pool = Arc::clone(&workers_pool);
-    thread::spawn(move || {
+    let worker_pool_handle = thread::spawn(move || {
         loop {
             loop_sleep!();
 
@@ -100,7 +111,7 @@ pub fn start_server(host: &str, port: u16) {
             trace!("WORKER = {:?}", worker);
 
             info!("Sending task {} to worker: {}", task.id, worker.get_worker_name());
-            dbg!(worker.get_stream());
+            // dbg!(worker.get_stream());
 
             let task2 = task.clone();
 
@@ -120,8 +131,8 @@ pub fn start_server(host: &str, port: u16) {
         }
     });
 
-
-    loop {
+    let listener_server = server.clone();
+    let listener_handle = thread::spawn(move || loop {
         debug!("Waiting for connection...");
         let (stream, addr) = match listener.accept() {
             Ok((stream, addr)) => (stream, addr),
@@ -134,13 +145,33 @@ pub fn start_server(host: &str, port: u16) {
         debug!("Connection established: {}", addr);
 
         let pool = Arc::clone(&workers_pool);
+        let client_render_tx = render_tx.clone();
+        let listener_server = listener_server.clone();
         thread::spawn(move || {
-            handle_client(stream, pool);
+            debug!("Accepted new connection.");
+
+            handle_client(stream, pool, listener_server, client_render_tx);
         });
-    }
+    });
+
+    let graphics_server = server.clone();
+    _ = launch_graphics_engine(graphics_server, render_rx);
+
+    _ = listener_handle.join().unwrap();
+    _ = worker_pool_handle.join().unwrap();
 }
 
-fn handle_client(stream: TcpStream, workers_pool: Arc<Mutex<Pool>>) {
+fn create_server(config: &ServerConfig, render_tx: &Sender<RenderingData>) -> Arc<Mutex<Server>> {
+    let server = Server::new(config.clone(), render_tx.clone());
+    Arc::new(Mutex::new(server))
+}
+
+fn handle_client(
+    stream: TcpStream,
+    workers_pool: Arc<Mutex<Pool>>,
+    server: Arc<Mutex<Server>>,
+    render_tx: Sender<RenderingData>,
+) {
     trace!("HANDLE CLIENT");
 
     let message = match network::receive_message(&stream) {
@@ -150,16 +181,16 @@ fn handle_client(stream: TcpStream, workers_pool: Arc<Mutex<Pool>>) {
                 ErrorKind::ConnectionAborted => {
                     // Stream closed by peer
                     error!("Connection aborted");
-                },
+                }
                 ErrorKind::UnexpectedEof => {
                     // No task given
                     warn!("Failed to receive message: EOF");
-                },
+                }
                 _ => {
                     error!("Failed to receive message")
                 }
             };
-            
+
             // network::close_stream(stream);
             return;
         }
@@ -174,11 +205,25 @@ fn handle_client(stream: TcpStream, workers_pool: Arc<Mutex<Pool>>) {
     };
 
     debug!("Handle message: {}", message.0);
-    handle_message(stream_clone, message.0, message.1, &workers_pool);
+    handle_message(
+        stream_clone,
+        message.0,
+        message.1,
+        &workers_pool,
+        server,
+        render_tx,
+    );
     debug!("Message handled");
 }
 
-pub fn handle_message(stream: TcpStream, response: String, src_data: Vec<u8>, workers_pool: &Arc<Mutex<Pool>>) {
+pub fn handle_message(
+    stream: TcpStream,
+    response: String,
+    src_data: Vec<u8>,
+    workers_pool: &Arc<Mutex<Pool>>,
+    server: Arc<Mutex<Server>>,
+    render_tx: Sender<RenderingData>,
+) {
     let message = match network::extract_message(&response) {
         Some(message) => {
             debug!("Message type: {:?}", message);
@@ -203,7 +248,8 @@ pub fn handle_message(stream: TcpStream, response: String, src_data: Vec<u8>, wo
 
             let mut data = vec![0; count as usize];
 
-            match cursor.read_exact(&mut data) { // check
+            match cursor.read_exact(&mut data) {
+                // check
                 Ok(_) => trace!("Data read"),
                 Err(e) => {
                     error!("Failed to read data: {}", e);
@@ -232,31 +278,59 @@ pub fn handle_message(stream: TcpStream, response: String, src_data: Vec<u8>, wo
             trace!("TASK ID : {}", task_id);
 
             let worker = pool.get_worker_with_task(task_id);
-            match worker {
+            let worker_name = match worker {
                 Some(w) => {
-                    info!("Worker {} => set empty task and close stream", w.get_worker_name());
+                    info!(
+                        "Worker {} => set empty task and close stream",
+                        w.get_worker_name()
+                    );
                     w.set_task(None);
                     w.close_stream();
                     w.set_stream(stream);
-                },
+                    w.get_worker_name()
+                }
                 None => {
                     error!("No worker found with task id: {}", task_id);
+                    "[unknown-worker]"
                 }
-            }
+            };
 
             // TODO: use "result"
-        },
-        Fragment::Request(request
-        ) => {
+            let pixel_intensities: Vec<PixelIntensity> = data
+                .chunks_exact(size_of::<PixelIntensity>())
+                .filter_map(|chunk| {
+                    let zn_bytes = chunk.get(0..4)?.try_into().ok()?;
+                    let count_bytes = chunk.get(4..8)?.try_into().ok()?;
+                    Some(PixelIntensity {
+                        zn: f32::from_be_bytes(zn_bytes),
+                        count: f32::from_be_bytes(count_bytes),
+                    })
+                })
+                .collect();
+
+            //NOTE: we currenlty only care about the count
+            let iterations: Vec<f64> = pixel_intensities.iter().map(|pi| pi.count as f64).collect();
+
+            let rendering_data = RenderingData {
+                result,
+                iterations,
+                worker: worker_name.to_string(),
+            };
+
+            if let Err(e) = render_tx.send(rendering_data) {
+                error!("Failed to send rendering data: {}", e);
+            }
+        }
+        Fragment::Request(request) => {
             match workers_pool.lock() {
                 Ok(mut pool) => {
                     pool.remove_worker(&request.worker_name);
 
                     let worker = Worker::from_fragment_request(&request, stream);
-                    dbg!(worker.get_stream());
+                    // dbg!(worker.get_stream());
 
                     pool.add_worker(worker);
-                },
+                }
                 Err(e) => {
                     error!("Failed to lock workers pool: {}", e);
                 }
@@ -265,9 +339,9 @@ pub fn handle_message(stream: TcpStream, response: String, src_data: Vec<u8>, wo
             // let the mpsc loop some time
             // TODO: rework
             warn!("Request handle sleep...");
-            thread::sleep(std::time::Duration::from_secs(5));
+            // thread::sleep(std::time::Duration::from_secs(5));
             warn!("Request handle sleep... done !");
-        },
+        }
         _ => {
             error!("Unknown message type: {}", response);
         }

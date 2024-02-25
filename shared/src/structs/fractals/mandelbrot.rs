@@ -4,6 +4,8 @@ use super::super::prelude::*;
 pub struct Mandelbrot {}
 
 impl Mandelbrot {
+    pub fn new() -> Self { Self {  } }
+
     pub fn generate(max: u16, x: f64, y: f64) -> (f64, f64) {
         let mut z = Complex::new(0.0, 0.0);
         let c = Complex::new(x, y);

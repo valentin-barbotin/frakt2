@@ -6,6 +6,10 @@ pub struct IteratedSinZ {
 }
 
 impl IteratedSinZ {
+    pub fn new(c: Complex) -> Self {
+        Self { c }
+    }
+
     pub fn generate(&self, max: u16, x: f64, y: f64) -> (f64, f64) {
         let mut z = Complex::new(x, y);
 
@@ -18,3 +22,4 @@ impl IteratedSinZ {
         return (z.sqrt_mag(), i as f64);
     }
 }
+

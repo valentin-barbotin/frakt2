@@ -6,6 +6,13 @@ pub struct Julia {
     pub divergence_threshold_square: f64,
 }
 impl Julia {
+    pub fn new(c: Complex, divergence_threshold_square: f64) -> Self {
+        Self {
+            c,
+            divergence_threshold_square,
+        }
+    }
+
     pub fn generate(&self, max: u16, x: f64, y: f64) -> (f64, f64) {
         let mut z = Complex::new(x, y);
 
@@ -18,5 +25,3 @@ impl Julia {
         return (z.sqrt_mag(), i as f64);
     }
 }
-
-
