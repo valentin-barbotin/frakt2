@@ -17,9 +17,9 @@ use shared::{
 
 use super::tasks::*;
 
-pub fn start_server() {
+pub fn start_server(host: &str, port: u16) {
     // Check if host is valid
-    let host = match Ipv4Addr::from_str(&HOST) {
+    let host = match Ipv4Addr::from_str(host) {
         Ok(addr) => addr,
         Err(e) => {
             error!("Could not parse host address: {}", e);
@@ -27,13 +27,13 @@ pub fn start_server() {
         }
     };
 
-    let socketaddr = SocketAddrV4::new(host, *PORT);
+    let socketaddr = SocketAddrV4::new(host, port);
 
     debug!("Binding to address: {}", socketaddr);
 
     let listener = match TcpListener::bind(socketaddr) {
         Ok(listener) => listener,
-        _ => panic!("Could not bind to address: {0}:{1}", *HOST, *PORT),
+        _ => panic!("Could not bind to address: {0}:{1}", host, port),
     };
 
     info!("Listening on {}", socketaddr);

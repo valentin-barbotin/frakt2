@@ -2,9 +2,7 @@ use clap::Parser;
 use log::{debug, error, info, trace, warn, LevelFilter};
 use std::{
     io::{ErrorKind, Read, Write},
-    net::{Shutdown, TcpStream},
-    process,
-    rc::Rc,
+    net::{TcpStream},
     thread,
 };
 
@@ -12,7 +10,12 @@ use dotenv::dotenv;
 
 extern crate worker;
 
-use shared::{logger, loop_sleep, network, structs::prelude::*};
+use shared::{
+    logger,
+    loop_sleep,
+    network,
+    structs::prelude::*
+};
 
 use worker::{
     connect::connect_to_server,
@@ -21,14 +24,17 @@ use worker::{
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    #[arg(long, default_value_t= HOST.to_string())]
-    server_address: String,
+    #[arg(long, default_value_t = HOST.to_string())]
+    host: String,
 
     #[arg(long, default_value_t = *PORT)]
-    server_port: u16,
+    port: u16,
 
     #[arg(long)]
-    worker_name: Option<String>,
+    name: Option<String>,
+
+    #[arg(long, default_value_t = RUST_ENV.to_string())]
+    rust_env: String,
 }
 
 fn main() {
@@ -36,21 +42,19 @@ fn main() {
 
     local_env::check_vars();
     let args = Args::parse();
-    let server_address = &args.server_address;
-    let server_port = args.server_port;
-    let worker_name = args
-        .worker_name
+
+    let name = args
+        .name
         .unwrap_or_else(|| shared::utils::random_string(10));
 
-    logger::setup_logger(RUST_ENV.as_str());
+    logger::setup_logger(&args.rust_env.as_str());
 
-    info!("Worker {} ok", worker_name);
+    info!("Worker {} ok", name);
 
     loop {
         thread::sleep(std::time::Duration::from_secs(1));
-        info!("Connecting to server...");
 
-        let addr = match network::get_socket_addr(server_address.as_str(), server_port) {
+        let addr = match network::get_socket_addr(&args.host.as_str(), args.port) {
             Ok(addr) => addr,
             Err(e) => {
                 error!("Failed to parse address: {}", e);
@@ -58,11 +62,7 @@ fn main() {
             }
         };
 
-        info!(
-            "Connecting to server: {} port ::{}",
-            server_address, server_port
-        );
-        let main_stream = match connect_to_server(server_address, server_port) {
+        let main_stream = match connect_to_server(addr) {
             Ok(s) => s,
             Err(e) => {
                 error!("Failed to connect to server: {}", e);
@@ -70,7 +70,7 @@ fn main() {
             }
         };
 
-        let fragment = Fragment::Request(FragmentRequest::new(&worker_name, 500));
+        let fragment = Fragment::Request(FragmentRequest::new(&name, 500));
 
         match network::send_message(&main_stream, fragment, None, None) {
             Ok(_) => info!("Fragment request sent"),
@@ -103,7 +103,7 @@ fn main() {
 
         loop {
             loop_sleep!();
-            let stream = match connect_to_server(server_address, server_port) {
+            let stream = match connect_to_server(addr) {
                 Ok(s) => s,
                 Err(e) => {
                     error!("Failed to connect to server: {}", e);
