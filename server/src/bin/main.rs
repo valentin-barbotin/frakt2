@@ -42,20 +42,20 @@ fn main() {
 
 
     let host = args.host
-    .or(parsed_toml.get("host").and_then(|v| v.as_str()).map(String::from))
+    .or(parsed_toml.get("HOST").and_then(|v| v.as_str()).map(String::from))
     .or_else(|| env::var("HOST").ok())
-    .unwrap_or_else(|| "random".to_string());
+    .unwrap_or_else(|| "0.0.0.0".to_string());
 
     let port = args.port
-    .or(parsed_toml.get("port").and_then(|v| v.as_str()).map(String::from))
-    .or_else(|| env::var("port").ok())
-    .unwrap_or_else(|| "random".to_string());
+    .or(parsed_toml.get("PORT").and_then(|v| v.as_str()).map(String::from))
+    .or_else(|| env::var("PORT").ok())
+    .unwrap_or_else(|| "80".to_string());
 
 
     let rust_env = args.rust_env
-    .or(parsed_toml.get("rust_env").and_then(|v| v.as_str()).map(String::from))
+    .or(parsed_toml.get("RUST_ENV").and_then(|v| v.as_str()).map(String::from))
     .or_else(|| env::var("RUST_ENV").ok())
-    .unwrap_or_else(|| "random".to_string());
+    .unwrap_or_else(|| "debug".to_string());
 
     println!("Host: {:?}", host);
     println!("Port: {:?}", port);
