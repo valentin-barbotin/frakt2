@@ -8,6 +8,7 @@ name = "server"
 path = "src/bin/main.rs"
 
 [dependencies]
+toml = "0.8.10"
 dotenv = { version = "0.15.0" }
 image = { version = "0.24.7" }
 serde = { version = "1.0.189", features = ["derive"] }
