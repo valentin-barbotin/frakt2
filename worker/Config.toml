@@ -1,0 +1,3 @@
+host = "localhost"
+port = "8787"
+rust_env = "debug"
