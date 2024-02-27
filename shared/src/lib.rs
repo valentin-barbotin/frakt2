@@ -7,6 +7,8 @@ pub mod network;
 pub mod structs;
 pub mod utils;
 pub mod logger;
+pub mod toml_reader;
+
 
 #[macro_export]
 macro_rules! loop_sleep {
