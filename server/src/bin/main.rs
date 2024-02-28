@@ -46,19 +46,19 @@ fn main() {
         }
     };
     let matches = App::new("server")
-    .arg(Arg::new("host")
-        .long("host")
-        .takes_value(true)
-        .required(false))
-    .arg(Arg::new("port")
-        .long("port")
-        .takes_value(true)
-        .required(false))
-    .arg(Arg::new("rust_env")
-        .long("rust-env")
-        .takes_value(true)
-        .required(false))
-    .get_matches();
+        .arg(Arg::new("host")
+            .long("host")
+            .takes_value(true)
+            .required(false))
+        .arg(Arg::new("port")
+            .long("port")
+            .takes_value(true)
+            .required(false))
+        .arg(Arg::new("rust_env")
+            .long("rust-env")
+            .takes_value(true)
+            .required(false))
+        .get_matches();
 
     let args = Args {
         host: matches.value_of("host").map(String::from).unwrap_or_else(|| {
