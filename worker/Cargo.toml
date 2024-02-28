@@ -8,6 +8,7 @@ name = "worker"
 path = "src/bin/main.rs"
 
 [dependencies]
+toml = "0.8.10"
 dotenv = { version = "0.15.0" }
 serde = { version = "1.0.189", features = ["derive"] }
 serde_json = { version = "1.0.107" }
@@ -17,4 +18,4 @@ log = { version = "0.4.20" }
 rand = { version = "0.8.5" }
 lazy_static = { version = "1.4.0" }
 shared = { path = "../shared" }
-clap = { version = "4.4.12", features = ["derive"] }
+clap = "3.0"
