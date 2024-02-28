@@ -16,6 +16,7 @@ ARG PROFILE="dev"
 RUN cargo new --bin server
 RUN cargo new --bin worker
 RUN cargo new --lib shared
+RUN cargo new --lib complex
 
 COPY Cargo.* .
 
