@@ -47,7 +47,7 @@ fn main() {
             return; 
         }
     };
-    let matches = App::new("MyApp")
+    let matches = App::new("worker")
     .arg(Arg::new("host")
         .long("host")
         .takes_value(true)
