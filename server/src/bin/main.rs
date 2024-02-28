@@ -1,7 +1,7 @@
-use clap::Parser;
+use clap::{App, Arg, Parser};
 use log::{debug, error, info, trace, warn, LevelFilter};
 use std::{
-    env,fs, io::Write
+    fs, io::Write
 };
 
 use toml::Value;
@@ -18,52 +18,78 @@ use server::{
     local_env::{self, *},
 };
 
-#[derive(Debug, Parser)]
-#[command(author, version, about, long_about = None)]
 struct Args {
-    #[arg(long)]
-    host: Option<String>,
+    host: String,
 
-    #[arg(long)]
-    port: Option<String>,
+    port: u16,
 
-    #[arg(long)]
-    rust_env: Option<String>,
+    rust_env: String,
 }
 
-
 fn main() {
-    dotenv::from_filename(".env.server").ok();
-
-    let args = Args::parse();
-    let contents = fs::read_to_string("server/Config.toml").expect("Unable to read file");
-
-    let parsed_toml: Value = contents.parse().expect("Unable to parse TOML");
-
-
-    let host = args.host
-    .or(parsed_toml.get("HOST").and_then(|v| v.as_str()).map(String::from))
-    .or_else(|| env::var("HOST").ok())
-    .unwrap_or_else(|| "0.0.0.0".to_string());
-
-    let port = args.port
-    .or(parsed_toml.get("PORT").and_then(|v| v.as_str()).map(String::from))
-    .or_else(|| env::var("PORT").ok())
-    .unwrap_or_else(|| "80".to_string());
-
-
-    let rust_env = args.rust_env
-    .or(parsed_toml.get("RUST_ENV").and_then(|v| v.as_str()).map(String::from))
-    .or_else(|| env::var("RUST_ENV").ok())
-    .unwrap_or_else(|| "debug".to_string());
-
-    println!("Host: {:?}", host);
-    println!("Port: {:?}", port);
-    println!("rust_env: {:?}", rust_env);
+    dotenv().ok();
     
-    logger::setup_logger(&rust_env);
+   local_env::check_vars();    
+    let contents = match fs::read_to_string("server/Config.toml") {
+        Ok(contents) => contents,
+        Err(e) => {
+            eprintln!("Unable to read file: {}", e);
+            return; 
+        }
+    };
+    
+    let parsed_toml: Value = match contents.parse() {
+        Ok(parsed) => parsed,
+        Err(e) => {
+            eprintln!("Unable to parse TOML: {}", e);
+            return; 
+        }
+    };
+    let matches = App::new("MyApp")
+    .arg(Arg::new("host")
+        .long("host")
+        .takes_value(true)
+        .required(false))
+    .arg(Arg::new("port")
+        .long("port")
+        .takes_value(true)
+        .required(false))
+    .arg(Arg::new("rust_env")
+        .long("rust-env")
+        .takes_value(true)
+        .required(false))
+    .get_matches();
 
-    info!("Starting server on port {}", port);
+    let args = Args {
+        host: matches.value_of("host").map(String::from).unwrap_or_else(|| {
+            parsed_toml.get("HOST")
+                .and_then(|v| v.as_str())
+                .map(String::from)
+                .unwrap_or_else(|| HOST.to_string())
+        }),
+        port: matches.value_of("port")
+        .map(|s| s.parse::<u16>().unwrap_or_default())
+        .unwrap_or_else(|| {
+            parsed_toml.get("PORT")
+                .and_then(|v| v.as_str())
+                .map(|s| s.parse::<u16>().unwrap_or_default())
+                .unwrap_or_else(|| *PORT)
+        }),
 
-    listener::start_server(&host, port.parse::<u16>().unwrap());
+
+    rust_env: matches.value_of("rust_env").map(|s| s.to_string()).unwrap_or_else(|| {
+        parsed_toml.get("RUST_ENV")
+            .and_then(|v| v.as_str())
+            .map(String::from)
+            .unwrap_or_else(|| RUST_ENV.to_string())
+    }),
+};
+
+
+    logger::setup_logger(&args.rust_env.as_str());
+    info!("Host: {}", args.host);
+    info!("Starting server on port {}", args.port);
+    info!("Rust Environment: {}", args.rust_env);
+
+    listener::start_server(&args.host, args.port);
 }
