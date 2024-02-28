@@ -1,10 +1,12 @@
-use clap::Parser;
+use clap::{App, Arg};
+
 use log::{debug, error, info, trace, warn, LevelFilter};
 use std::{
-    env, fs, io::{ErrorKind, Read, Write}, net::TcpStream, thread
+    fs, io::{ErrorKind, Read, Write}, net::TcpStream, thread
 };
-use toml::Value;
+
 use dotenv::dotenv;
+use toml::Value;
 
 extern crate worker;
 
@@ -19,61 +21,95 @@ use worker::{
     connect::connect_to_server,
     local_env::{self, *},
 };
-#[derive(Debug, Parser)]
-#[command(author, version, about, long_about = None)]
 struct Args {
-    #[arg(long)]
-    host: Option<String>,
-
-    #[arg(long)]
-    port: Option<String>,
-
-    #[arg(long)]
-    name: Option<String>,
-
-    #[arg(long)]
-    rust_env: Option<String>,
+    host: String,
+    port: u16,
+    name: String,
+    rust_env: String,
 }
-
 
 fn main() {
     dotenv().ok();
 
     local_env::check_vars();
-    let args = Args::parse();
-    let contents = fs::read_to_string("worker/Config.toml").expect("Unable to read file");
+    let contents = match fs::read_to_string("worker/Config.toml") {
+        Ok(contents) => contents,
+        Err(e) => {
+            eprintln!("Unable to read file: {}", e);
+            return; 
+        }
+    };
+    
+    let parsed_toml: Value = match contents.parse() {
+        Ok(parsed) => parsed,
+        Err(e) => {
+            eprintln!("Unable to parse TOML: {}", e);
+            return; 
+        }
+    };
+    let matches = App::new("MyApp")
+    .arg(Arg::new("host")
+        .long("host")
+        .takes_value(true)
+        .required(false))
+    .arg(Arg::new("port")
+        .long("port")
+        .takes_value(true)
+        .required(false))
+    .arg(Arg::new("name")
+        .long("name")
+        .takes_value(true)
+        .required(false))
+    .arg(Arg::new("rust_env")
+        .long("rust-env")
+        .takes_value(true)
+        .required(false))
+    .get_matches();
 
-    let parsed_toml: Value = contents.parse().expect("Unable to parse TOML");
+    let args = Args {
+        host: matches.value_of("host").map(String::from).unwrap_or_else(|| {
+            parsed_toml.get("HOST")
+                .and_then(|v| v.as_str())
+                .map(String::from)
+                .unwrap_or_else(|| HOST.to_string())
+        }),
+        port: matches.value_of("port")
+        .map(|s| s.parse::<u16>().unwrap_or_default())
+        .unwrap_or_else(|| {
+            parsed_toml.get("PORT")
+                .and_then(|v| v.as_str())
+                .map(|s| s.parse::<u16>().unwrap_or_default())
+                .unwrap_or_else(|| *PORT)
+        }),
+
+    name: matches.value_of("name").map(|s| s.to_string()).unwrap_or_else(|| {
+        parsed_toml.get("NAME")
+            .and_then(|v| v.as_str())
+            .map(String::from)
+            .unwrap_or_else(|| shared::utils::random_string(10))
+    }),
+    rust_env: matches.value_of("rust_env").map(|s| s.to_string()).unwrap_or_else(|| {
+        parsed_toml.get("RUST_ENV")
+            .and_then(|v| v.as_str())
+            .map(String::from)
+            .unwrap_or_else(|| RUST_ENV.to_string())
+    }),
+};
 
 
-    let host = args.host
-    .or(parsed_toml.get("HOST").and_then(|v| v.as_str()).map(String::from))
-    .or_else(|| env::var("HOST").ok())
-    .unwrap_or_else(|| "localhost".to_string());
 
-    let port = args.port
-    .or(parsed_toml.get("port").and_then(|v| v.as_str()).map(String::from))
-    .or_else(|| env::var("PORT").ok())
-    .unwrap_or_else(|| "8787".to_string());
-
-    let name = args.name
-    .or(parsed_toml.get("NAME").and_then(|v| v.as_str()).map(String::from))
-    .or_else(|| env::var("NAME").ok())
-    .unwrap_or_else(|| shared::utils::random_string(10));
-
-    let rust_env = args.rust_env
-    .or(parsed_toml.get("RUST_ENV").and_then(|v| v.as_str()).map(String::from))
-    .or_else(|| env::var("RUST_ENV").ok())
-    .unwrap_or_else(|| "debug".to_string());
-
-    logger::setup_logger(rust_env.as_str());
-
-    info!("Worker {} ok", name);
+    logger::setup_logger(args.rust_env.as_str());
+    info!("Host: {}", args.host);
+    info!("Port: {}", args.port);
+    info!("Name: {}", args.name);
+    info!("Rust Environment: {}", args.rust_env);
+    
+    info!("Worker {} ok", args.name);
 
     loop {
         thread::sleep(std::time::Duration::from_secs(1));
 
-        let addr = match network::get_socket_addr(host.as_str(), port.parse::<u16>().unwrap()) {
+        let addr = match network::get_socket_addr(args.host.as_str(), args.port) {
             Ok(addr) => addr,
             Err(e) => {
                 error!("Failed to parse address: {}", e);
@@ -89,7 +125,7 @@ fn main() {
             }
         };
 
-        let fragment = Fragment::Request(FragmentRequest::new(&name, 500));
+        let fragment = Fragment::Request(FragmentRequest::new(&args.name, 500));
 
         match network::send_message(&main_stream, fragment, None, None) {
             Ok(_) => info!("Fragment request sent"),
