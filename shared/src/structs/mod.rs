@@ -1,4 +1,3 @@
-pub mod complex;
 pub mod fractal_descriptor;
 pub mod fractals;
 pub mod fragment;
@@ -11,6 +10,7 @@ pub mod point;
 pub mod range;
 pub mod resolution;
 pub mod u8data;
+extern crate complex; 
 
 pub mod prelude {
     pub use super::complex::Complex;

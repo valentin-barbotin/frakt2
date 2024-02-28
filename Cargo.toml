@@ -3,7 +3,7 @@ members = [
     "worker",
     "server",
     "shared"
-]
+, "complex"]
 
 resolver = "2"
 [profile.dev]

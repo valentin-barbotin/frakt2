@@ -14,5 +14,5 @@ image = { version = "0.24.7" }
 rand = { version = "0.8.5" }
 rstest = "0.18.2"
 env_logger = { version = "0.10.0" }
-
+complex = {path = "../complex"}
 
