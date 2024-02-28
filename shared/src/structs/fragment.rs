@@ -1,5 +1,4 @@
 use serde_json::json;
-
 use super::prelude::*;
 
 // Each variant have his own struct and implementation. (Can't impl on a unique variant)

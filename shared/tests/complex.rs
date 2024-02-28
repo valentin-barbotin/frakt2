@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use shared::structs::prelude::Complex;
+    use complex::Complex;
 
     #[test]
     fn test_complex_operations() {
