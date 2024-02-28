@@ -61,29 +61,31 @@ fn main() {
         .get_matches();
 
     let args = Args {
-        host: matches.value_of("host").map(String::from).unwrap_or_else(|| {
-            parsed_toml.get("HOST")
-                .and_then(|v| v.as_str())
-                .map(String::from)
-                .unwrap_or_else(|| HOST.to_string())
-        }),
-        port: matches.value_of("port")
-        .map(|s| s.parse::<u16>().unwrap_or_default())
-        .unwrap_or_else(|| {
-            parsed_toml.get("PORT")
-                .and_then(|v| v.as_str())
-                .map(|s| s.parse::<u16>().unwrap_or_default())
-                .unwrap_or_else(|| *PORT)
-        }),
-
-
-    rust_env: matches.value_of("rust_env").map(|s| s.to_string()).unwrap_or_else(|| {
-        parsed_toml.get("RUST_ENV")
-            .and_then(|v| v.as_str())
+        host: matches.value_of("host")
             .map(String::from)
-            .unwrap_or_else(|| RUST_ENV.to_string())
-    }),
-};
+            .unwrap_or_else(|| {
+                parsed_toml.get("HOST")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+                    .unwrap_or_else(|| HOST.to_string())
+            }),
+        port: matches.value_of("port")
+            .map(|s| s.parse::<u16>().unwrap_or_default())
+            .unwrap_or_else(|| {
+                parsed_toml.get("PORT")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.parse::<u16>().unwrap_or_default())
+                    .unwrap_or_else(|| *PORT)
+            }),
+        rust_env: matches.value_of("rust_env")
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| {
+                parsed_toml.get("RUST_ENV")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+                    .unwrap_or_else(|| RUST_ENV.to_string())
+            }),
+    };
 
 
     logger::setup_logger(&args.rust_env.as_str());

@@ -67,34 +67,41 @@ fn main() {
         .get_matches();
 
     let args = Args {
-        host: matches.value_of("host").map(String::from).unwrap_or_else(|| {
-            parsed_toml.get("HOST")
-                .and_then(|v| v.as_str())
-                .map(String::from)
-                .unwrap_or_else(|| HOST.to_string())
-        }),
+        host: matches.value_of("host")
+            .map(String::from)
+            .unwrap_or_else(|| {
+                parsed_toml.get("HOST")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+                    .unwrap_or_else(|| HOST.to_string())
+            }),
         port: matches.value_of("port")
-        .map(|s| s.parse::<u16>().unwrap_or_default())
-        .unwrap_or_else(|| {
-            parsed_toml.get("PORT")
-                .and_then(|v| v.as_str())
-                .map(|s| s.parse::<u16>().unwrap_or_default())
-                .unwrap_or_else(|| *PORT)
-        }),
+            .map(|s| s.parse::<u16>().unwrap_or_default())
+            .unwrap_or_else(|| {
+                parsed_toml.get("PORT")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.parse::<u16>().unwrap_or_default())
+                    .unwrap_or_else(|| *PORT)
+            }),
+        name: matches.value_of("name")
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| {
+                parsed_toml.get("NAME")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+                    .unwrap_or_else(|| shared::utils::random_string(10))
+            }),
+        rust_env: matches.value_of("rust_env")
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| {
+                parsed_toml.get("RUST_ENV")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+                    .unwrap_or_else(|| RUST_ENV.to_string())
+            }),
+    };
+    
 
-    name: matches.value_of("name").map(|s| s.to_string()).unwrap_or_else(|| {
-        parsed_toml.get("NAME")
-            .and_then(|v| v.as_str())
-            .map(String::from)
-            .unwrap_or_else(|| shared::utils::random_string(10))
-    }),
-    rust_env: matches.value_of("rust_env").map(|s| s.to_string()).unwrap_or_else(|| {
-        parsed_toml.get("RUST_ENV")
-            .and_then(|v| v.as_str())
-            .map(String::from)
-            .unwrap_or_else(|| RUST_ENV.to_string())
-    }),
-};
 
 
 
