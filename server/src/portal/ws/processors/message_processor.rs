@@ -1,8 +1,7 @@
 use actix::{Actor, AsyncContext, StreamHandler};
 use actix_web_actors::ws::{self};
 use shared::{
-    dtos::portal_dto::PortalDto, models::fragments::fragment_request::FragmentRequest,
-    networking::server::Server,
+    acquire_server, dtos::portal_dto::PortalDto, models::fragments::fragment_request::FragmentRequest, networking::server::Server
 };
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -42,7 +41,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsMessageProcesso
 
                     let server = self.server.clone();
                     tokio::spawn(async move {
-                        server.lock().unwrap().notify_portal();
+                        acquire_server!(server).notify_portal();
                     });
                 }
                 Err(_) => ctx.text("Error parsing FragmentRequest"),

@@ -1,4 +1,4 @@
-pub mod portal;
+Pub mod portal;
 
 use std::{
     mem::size_of,
@@ -12,6 +12,7 @@ use std::{
 use log::{debug, error, info, trace};
 
 use shared::{
+    acquire_server,
     dtos::{portal_dto::PortalDto, rendering_data::RenderingData},
     models::{
         fragments::{
@@ -284,7 +285,7 @@ async fn process_fragment_result(
     let iterations: Vec<f64> = pixel_intensities.iter().map(|pi| pi.count as f64).collect();
 
     let worker = {
-        let server = server.lock().unwrap();
+        let server = acquire_server!(server);
         if let Some(worker) = server.get_worker(&socket_addr) {
             worker.name.to_string()
         } else {
@@ -299,7 +300,7 @@ async fn process_fragment_result(
     };
 
     let (graphics_enabled, portal_enabled) = {
-        let server = server.lock().unwrap();
+        let server = acquire_server!(server);
         (server.config.graphics, server.config.portal)
     };
 
@@ -321,7 +322,7 @@ async fn process_fragment_result(
             }
             Ok(_) => {
                 info!("🌀 Sent rendering data to the portal");
-                server.lock().unwrap().notify_portal();
+                acquire_server!(server).notify_portal();
             }
         }
     }
@@ -330,7 +331,7 @@ async fn process_fragment_result(
 async fn process_portal_fragment_request(request: FragmentRequest, server: Arc<Mutex<Server>>) {
     info!("🤌🌀 Received FragmentRequest from the portal");
     trace!("FragmentRequest details: {:?}", request);
-    let mut server = server.lock().unwrap();
+        let mut server = acquire_server!(server);
 
     match server.create_fragment_task() {
         Some(task) => {
@@ -353,7 +354,7 @@ async fn process_fragment_request(
     );
     trace!("FragmentRequest details: {:?}", request);
     let task = {
-        let mut server = server.lock().unwrap();
+    let server = acquire_server!(server);
 
         let worker = Worker::new(
             request.worker_name.to_string(),

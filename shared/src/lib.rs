@@ -4,6 +4,7 @@ pub mod logger;
 pub mod models;
 pub mod networking;
 pub mod rendering;
+pub mod macros;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

@@ -15,6 +15,7 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
+use crate::acquire_server;
 use crate::dtos::rendering_data::RenderingData;
 
 use crate::models::range::Range;
@@ -47,7 +48,7 @@ pub async fn launch_graphics_engine(
     let mut input_helper = WinitInputHelper::new();
 
     let (width, height) = {
-        let server = server.lock().unwrap();
+        let server = acquire_server!(server);
         let width = server.config.width;
         let height = server.config.height;
         (width, height)
@@ -114,30 +115,30 @@ pub async fn launch_graphics_engine(
 
             if input_helper.key_pressed(VirtualKeyCode::Right) {
                 info!("Moving right");
-                graphics_world.server.lock().unwrap().move_right();
+                acquire_server!(graphics_world.server).move_right();
             }
             if input_helper.key_pressed(VirtualKeyCode::Left) {
                 info!("Moving left");
-                graphics_world.server.lock().unwrap().move_left();
+                acquire_server!(graphics_world.server).move_left();
             }
             if input_helper.key_pressed(VirtualKeyCode::Down) {
                 info!("Moving down");
-                graphics_world.server.lock().unwrap().move_down();
+                acquire_server!(graphics_world.server).move_down();
             }
             if input_helper.key_pressed(VirtualKeyCode::Up) {
                 info!("Moving up");
-                graphics_world.server.lock().unwrap().move_up();
+                acquire_server!(graphics_world.server).move_up();
             }
 
             if input_helper.key_pressed(VirtualKeyCode::P) {
-                graphics_world.server.lock().unwrap().zoom(0.9); // Zoom in
+                acquire_server!(graphics_world.server).zoom(0.9); // Zoom in
             }
             if input_helper.key_pressed(VirtualKeyCode::M) {
-                graphics_world.server.lock().unwrap().zoom(1.1); // Zoom out
+                acquire_server!(graphics_world.server).zoom(1.1); // Zoom out
             }
 
             if input_helper.key_pressed(VirtualKeyCode::K) {
-                graphics_world.server.lock().unwrap().cycle_fractal();
+                acquire_server!(graphics_world.server).cycle_fractal();
             }
 
             if input_helper.key_pressed(VirtualKeyCode::L) {
@@ -173,12 +174,10 @@ impl World {
 
     fn cycle_color_palette_forward(&mut self) {
         self.palette.cycle_palette_forward();
-        // self.server.lock().unwrap().regenerate_tiles();
     }
 
     fn cycle_color_palette_backward(&mut self) {
         self.palette.cycle_palette_backward();
-        // self.server.lock().unwrap().regenerate_tiles();
     }
 
     fn re_render(&self, frame_buffer: &mut [u8]) {

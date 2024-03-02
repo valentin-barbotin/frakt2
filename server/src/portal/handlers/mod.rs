@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use actix_web::{web, HttpResponse, Responder};
 use serde::Deserialize;
-use shared::networking::server::Server;
+use shared::{acquire_server, networking::server::Server};
 
 #[derive(Debug, Deserialize)]
 pub struct DirectionQuery {
@@ -18,7 +18,7 @@ pub async fn cycle_fractal(
     body: web::Json<CycleQuery>,
     server: web::Data<Arc<Mutex<Server>>>,
 ) -> impl Responder {
-    let mut server = server.lock().unwrap();
+    let mut server = acquire_server!(server);
     match body.direction.to_lowercase().as_str() {
         "previous" => server.previous_fractal(),
         "next" => server.cycle_fractal(),
@@ -34,7 +34,7 @@ pub async fn move_fractal(
     body: web::Json<DirectionQuery>,
     server: web::Data<Arc<Mutex<Server>>>,
 ) -> impl Responder {
-    let mut server = server.lock().unwrap();
+    let mut server = acquire_server!(server);
     match body.direction.to_lowercase().as_str() {
         "up" => server.move_up(),
         "right" => server.move_right(),
