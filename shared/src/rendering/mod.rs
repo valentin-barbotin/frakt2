@@ -141,6 +141,10 @@ pub async fn launch_graphics_engine(
                 acquire_server!(graphics_world.server).cycle_fractal();
             }
 
+            if input_helper.key_pressed(VirtualKeyCode::S) {
+                graphics_world.save_image(pixels.frame());
+            }
+
             if input_helper.key_pressed(VirtualKeyCode::L) {
                 graphics_world.cycle_color_palette_forward();
                 graphics_world.re_render(pixels.frame_mut());
@@ -170,6 +174,24 @@ pub async fn launch_graphics_engine(
 }
 
 impl World {
+    fn save_image(&self, frame_buffer: &[u8]) {
+        info!("Saving an image of the current view");
+
+        use chrono::Local;
+        use image::{ImageBuffer, RgbaImage};
+
+        let img: RgbaImage = ImageBuffer::from_raw(self.width, self.height, frame_buffer.to_vec())
+            .expect("Failed to create image buffer");
+
+        let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
+
+        let path = format!("exports/frakt_{}.png", timestamp);
+
+        img.save(&path).expect("Failed to save the image");
+
+        info!("Saved image to {}", path);
+    }
+
     fn update(&mut self) {}
 
     fn cycle_color_palette_forward(&mut self) {

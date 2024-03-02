@@ -1,4 +1,4 @@
-Pub mod portal;
+pub mod portal;
 
 use std::{
     mem::size_of,
@@ -354,7 +354,7 @@ async fn process_fragment_request(
     );
     trace!("FragmentRequest details: {:?}", request);
     let task = {
-    let server = acquire_server!(server);
+    let mut server = acquire_server!(server);
 
         let worker = Worker::new(
             request.worker_name.to_string(),
