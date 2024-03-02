@@ -200,7 +200,9 @@ impl World {
                     for y in 0..result.resolution.ny {
                         for x in 0..result.resolution.nx {
                             let t = render_data.iterations[(x + y * result.resolution.ny) as usize];
-                            self.iterations[((start_y + (y as u32)) * self.width + (start_x + x as u32)) as usize] = t;
+                            self.iterations[((start_y + (y as u32)) * self.width
+                                + (start_x + x as u32))
+                                as usize] = t;
                             self.draw_pixel(
                                 frame_buffer,
                                 self.width,

@@ -30,6 +30,7 @@ use shared::{
     rendering::launch_graphics_engine,
 };
 use tokio::{
+    io::AsyncWriteExt,
     net::{TcpListener, TcpStream},
     signal,
     sync::mpsc::{self, Sender},
@@ -238,6 +239,10 @@ async fn handle_connection(
             server,
         )
         .await;
+
+        if let Err(e) = socket.shutdown().await {
+            error!("Failed to close the socket gracefully: {:?}", e);
+        }
     } else if let Ok(request) = FragmentRequest::from_json(&raw_message.json_message) {
         debug!("🤌 Processing FragmentRequest.");
         process_fragment_request(request, server.clone(), &mut socket, socket_addr).await;

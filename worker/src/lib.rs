@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use image::EncodableLayout;
 use log::{debug, error, info, trace};
 use serde_json;
 use shared::{
@@ -18,31 +17,32 @@ use tokio::{io::AsyncWriteExt, net::TcpStream};
 pub async fn run_worker(worker: Worker) {
     info!("Starting worker: {}", worker.name);
     let mut retries: usize = 0;
-    let max_retries: usize = 10;
+    let max_retries: usize = 1000;
+    let base_delay_ms: u64 = 5;
+
     let handle = tokio::spawn(async move {
         loop {
-            match run(&worker).await {
+            match run(&worker, &mut retries).await {
                 Ok(_) => {
                     retries = 0;
                     info!("Worker task completed.")
                 }
                 Err(e) => {
                     retries += 1;
-                    // TODO: Implement a more robust error handling mechanism
-                    // TODO: put the max_retries in a config file
-                    // if retries >= max_retries {
-                    //     error!("Worker killed due to multiple errors encountered in a row");
-                    //     break;
-                    // }
+                    if retries >= max_retries {
+                        error!("Worker killed due to multiple errors encountered in a row");
+                        break;
+                    }
+
+                    let delay_ms = calculate_logarithmic_delay(retries, base_delay_ms);
                     error!(
-                        "Worker encountered an error: {}, retry {}/{}",
-                        e, retries, max_retries
-                    )
+                        "Worker encountered an error: {}, retry {}/{}, waiting for {} ms before retrying",
+                        e, retries, max_retries, delay_ms
+                    );
+
+                    std::thread::sleep(Duration::from_millis(delay_ms));
                 }
             }
-
-            // Add a short delay to prevent a tight loop in case of repeated errors
-            tokio::time::sleep(Duration::from_millis(100)).await;
         }
     });
 
@@ -51,7 +51,7 @@ pub async fn run_worker(worker: Worker) {
     }
 }
 
-async fn run(worker: &Worker) -> NetworkingResult<()> {
+async fn run(worker: &Worker, retry_count: &mut usize) -> NetworkingResult<()> {
     let server_addr = format!("{}:{}", worker.address, worker.port);
     debug!("Connecting to server at {}", server_addr);
     let mut stream = connect_to_server(&server_addr).await?;
@@ -70,6 +70,7 @@ async fn run(worker: &Worker) -> NetworkingResult<()> {
         send_fragment_result(&result, &mut stream, &data, &signature).await?;
 
         _ = stream.shutdown().await?;
+        *retry_count = 0;
     }
 }
 
@@ -139,4 +140,11 @@ async fn connect_to_server(addr: &str) -> NetworkingResult<TcpStream> {
         error!("Failed to connect to server at {}: {}", addr, e);
         e.into()
     })
+}
+
+fn calculate_logarithmic_delay(retry_count: usize, base_delay_ms: u64) -> u64 {
+    let retry_float = retry_count as f64;
+    let delay_multiplier = retry_float.log2().ceil() * 4.0;
+    let delay = base_delay_ms * delay_multiplier as u64;
+    delay.max(base_delay_ms)
 }
