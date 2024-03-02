@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check_vars"],"struct":["HOST","LOOP_SLEEP_DURATION","PORT","RUST_ENV"]};

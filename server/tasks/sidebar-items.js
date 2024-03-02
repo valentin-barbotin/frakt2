@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["create_fractal_tasks"],"struct":["FractalParams","Task"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["fractal_descriptor","fractals","fragment","fragment_request","fragment_result","fragment_task","pixel_data","pixel_intensity","point","prelude","range","resolution","u8data"]};
