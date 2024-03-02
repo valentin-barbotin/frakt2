@@ -51,8 +51,8 @@ impl ServerDto {
             config: server.config.clone(),
             tiles: server.tiles.clone(),
             tasks_queue: server.tasks_queue.clone(),
-            range: server.range.clone(),
-            current_fractal: server.current_fractal.clone(),
+            range: server.range,
+            current_fractal: server.current_fractal,
             fractals: server.fractals.clone(),
             workers: server.workers.clone(),
         }

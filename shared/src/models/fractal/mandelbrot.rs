@@ -6,6 +6,12 @@ use super::fractal::Fractal;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Mandelbrot {}
 
+impl Default for Mandelbrot {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Mandelbrot {
     pub fn new() -> Self {
         Self {}
@@ -23,6 +29,6 @@ impl Fractal for Mandelbrot {
             i += 1;
         }
 
-        return (z.arg_sq(), i as f64);
+        (z.arg_sq(), i as f64)
     }
 }

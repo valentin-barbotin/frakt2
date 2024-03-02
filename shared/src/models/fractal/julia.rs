@@ -28,6 +28,6 @@ impl Fractal for Julia {
             i += 1;
         }
 
-        return (z.arg_sq(), i as f64);
+        (z.arg_sq(), i as f64)
     }
 }

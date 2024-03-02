@@ -128,7 +128,7 @@ impl FragmentTask {
 impl Fragment for FragmentTask {
     fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
         let wrapped = serde_json::json!({ "FragmentTask": self });
-        return serde_json::to_value(&wrapped);
+        serde_json::to_value(wrapped)
     }
 
     fn from_json(fragment: &str) -> Result<Self, serde_json::Error> {

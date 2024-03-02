@@ -97,7 +97,7 @@ pub async fn launch_graphics_engine(
     };
 
     event_loop.run(move |event, _, control_flow| {
-        if let Ok(_) = render_shutdown_rx.try_recv() {
+        if render_shutdown_rx.try_recv().is_ok() {
             *control_flow = ControlFlow::Exit;
         }
         if let Event::RedrawRequested(_) = event {
@@ -184,8 +184,8 @@ impl World {
     fn re_render(&self, frame_buffer: &mut [u8]) {
         for y in 0..self.width {
             for x in 0..self.height {
-                let t = self.iterations[(y as u32 * self.width + x as u32) as usize];
-                self.draw_pixel(frame_buffer, self.width, x as u32, y as u32, t);
+                let t = self.iterations[(y * self.width + x) as usize];
+                self.draw_pixel(frame_buffer, self.width, x, y, t);
             }
         }
     }

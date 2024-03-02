@@ -15,12 +15,12 @@ impl PixelIntensity {
 
     pub async fn from_bytes(mut bytes: &[u8]) -> NetworkingResult<Self> {
         let zn = match bytes.read_f32().await {
-            Ok(zn) => zn.clone(),
+            Ok(zn) => zn,
             Err(err) => return Err(err.into()),
         };
 
         let count = match bytes.read_f32().await {
-            Ok(count) => count.clone(),
+            Ok(count) => count,
             Err(err) => return Err(err.into()),
         };
 

@@ -44,6 +44,12 @@ pub struct PaletteHandler {
     pub current_palette: ColorPalette,
 }
 
+impl Default for PaletteHandler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PaletteHandler {
     pub fn new() -> Self {
         PaletteHandler {
@@ -161,13 +167,11 @@ impl PaletteHandler {
         let color_b =
             c0.2 + t * (c1.2 + t * (c2.2 + t * (c3.2 + t * (c4.2 + t * (c5.2 + t * c6.2)))));
 
-        let color = (
+        (
             (color * 255.0).clamp(0.0, 255.0) as u8,
             (color_g * 255.0).clamp(0.0, 255.0) as u8,
             (color_b * 255.0).clamp(0.0, 255.0) as u8,
-        );
-
-        color
+        )
     }
 
     pub fn plasma_palette(&self, t: f64) -> Rgb {
@@ -187,7 +191,7 @@ impl PaletteHandler {
                 -7.455851135738909,
                 42.3461881477227,
                 -82.66631109428045,
-                71.41361770095349,
+                71.413_617_700_953_5,
                 -22.93153465461149,
             ),
             (

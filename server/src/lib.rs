@@ -52,7 +52,7 @@ use crate::portal::run_portal;
 ///
 /// A `NetworkingResult<()>` indicating success or error in server execution.
 pub async fn run_server(config: &ServerConfig) {
-    run_wrapper(&config).await;
+    run_wrapper(config).await;
 }
 
 pub async fn run_wrapper(config: &ServerConfig) {

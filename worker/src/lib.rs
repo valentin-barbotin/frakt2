@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use log::{debug, error, info, trace};
-use serde_json;
+
 use shared::{
     models::fragments::{
         fragment::Fragment, fragment_request::FragmentRequest, fragment_result::FragmentResult,
@@ -69,7 +69,7 @@ async fn run(worker: &Worker, retry_count: &mut usize) -> NetworkingResult<()> {
         let mut stream = connect_to_server(&server_addr).await?;
         send_fragment_result(&result, &mut stream, &data, &signature).await?;
 
-        _ = stream.shutdown().await?;
+        stream.shutdown().await?;
         *retry_count = 0;
     }
 }
@@ -101,7 +101,7 @@ async fn send_fragment_result(
         .await
         .map_err(|e| {
             error!("Failed to send FragmentResult: {}", e);
-            e.into()
+            e
         })
 }
 
@@ -131,7 +131,7 @@ async fn send_fragment_request(stream: &mut TcpStream, worker: &Worker) -> Netwo
         .await
         .map_err(|e| {
             error!("Failed to send FragmentRequest: {}", e);
-            e.into()
+            e
         })
 }
 

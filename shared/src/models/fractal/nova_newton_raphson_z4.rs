@@ -6,6 +6,12 @@ use super::fractal::Fractal;
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct NovaNewtonRaphsonZ4 {}
 
+impl Default for NovaNewtonRaphsonZ4 {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl NovaNewtonRaphsonZ4 {
     pub fn new() -> Self {
         Self {}
@@ -37,6 +43,6 @@ impl Fractal for NovaNewtonRaphsonZ4 {
             i += 1;
         }
 
-        return (0.0, i as f64);
+        (0.0, i as f64)
     }
 }

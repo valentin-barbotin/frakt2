@@ -42,7 +42,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsMessageProcesso
 
                     let server = self.server.clone();
                     tokio::spawn(async move {
-                        let _ = server.lock().unwrap().notify_portal();
+                        server.lock().unwrap().notify_portal();
                     });
                 }
                 Err(_) => ctx.text("Error parsing FragmentRequest"),
